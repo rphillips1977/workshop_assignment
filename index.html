@@ -1,4 +1,3 @@
-<!-- Author: Robert Lovelace with the help of AI -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,8 +40,6 @@ button[disabled]{opacity:.55;cursor:not-allowed}
 .tab{padding:8px 12px;border:1px solid var(--line-soft);border-bottom:0;border-radius:10px 10px 0 0;background:#f8fafc;cursor:pointer}
 .tab.active{background:#fff;border-color:var(--lsu-purple);color:var(--lsu-purple)}
 .panel{border:1px solid var(--line-soft);border-radius:0 12px 12px 12px;background:#fff;padding:12px}
-
-/* tables */
 table{width:100%}
 table.report{
   border-collapse:separate;border-spacing:0;border:1px solid var(--line);
@@ -55,12 +52,9 @@ table.report{
 }
 .report th:last-child,.report td:last-child{border-right:0}
 .report tr:last-child td{border-bottom:0}
-
-/* Summary align */
 #balanceTable th:nth-child(3),#balanceTable td:nth-child(3),
 #balanceTable th:nth-child(4),#balanceTable td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
 #balanceTable th:nth-child(5),#balanceTable td:nth-child(5){white-space:nowrap}
-
 tbody tr:hover td{background:#fcfcff}
 .scrollbox{max-height:340px;overflow:auto;border:1px solid var(--line-soft);border-radius:12px;padding:6px;background:#fff}
 .dropzone{border:2px dashed #c7c9d1;border-radius:12px;padding:16px;text-align:center;color:#6b7280;background:#fff;transition:border-color .15s,background .15s,color .15s}
@@ -69,17 +63,12 @@ tbody tr:hover td{background:#fcfcff}
 fieldset.locked{opacity:.7}
 .locknote{font-size:12px;color:#374151;background:#FFFBEB;border:1px solid #FDE68A;padding:8px;border-radius:8px}
 @media print{.header,.tabs,.printbar,.badge{display:none !important}}
-/* visible fallback if JS fails */
 .nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
 </style>
-
-<!-- External lib only used when you click “Export PDF” -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 </head>
 <body>
-<noscript>
-  <div class="wrap"><div class="nojs">JavaScript is disabled. Turn it on to use Workshop Sorter.</div></div>
-</noscript>
+<noscript><div class="wrap"><div class="nojs">JavaScript is disabled. Turn it on to use Workshop Sorter.</div></div></noscript>
 
 <div class="header">
   <div class="wrap brand"><div class="title">Workshop Sorter</div></div>
@@ -131,7 +120,10 @@ fieldset.locked{opacity:.7}
     <div style="margin-top:6px">Load students with three ranked choices</div>
     <div class="two">
       <div>
-        <label class="small">Upload CSV with columns: <b>Last, First, Choice1, Choice2, Choice3</b></label>
+        <label class="small">
+          Upload CSV with columns: <b>Last</b>, <b>First</b>, <b>Choice1</b>, <b>Choice2</b>, <b>Choice3</b><br/>
+          (Also supports legacy: <i>Student</i>, <i>Choice1</i>, <i>Choice2</i>, <i>Choice3</i>)
+        </label>
         <input id="csvFile" type="file" accept=".csv" disabled>
       </div>
       <div id="studentDrop" class="dropzone disabled">Drag &amp; drop Student CSV here</div>
@@ -140,7 +132,9 @@ fieldset.locked{opacity:.7}
       <div class="badge">loaded students</div>
       <div class="scrollbox">
         <table id="studentsTable" class="report">
-          <thead><tr><th>Last Name</th><th>First Name</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th></tr></thead>
+          <thead>
+            <tr><th>Last Name</th><th>First Name</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th></tr>
+          </thead>
           <tbody></tbody>
         </table>
       </div>
@@ -193,7 +187,7 @@ fieldset.locked{opacity:.7}
       <div id="panelStudents" class="hidden">
         <div class="scrollbox">
           <table id="studentTable" class="report">
-            <thead><tr><th>Student</th><th>Assigned workshop</th><th>Room #</th></tr></thead>
+            <thead><tr><th>Last Name</th><th>First Name</th><th>Assigned workshop</th><th>Room #</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -206,7 +200,7 @@ fieldset.locked{opacity:.7}
       <div id="panelRosters" class="hidden">
         <div class="scrollbox">
           <table id="rosterTable" class="report">
-            <thead><tr><th>Instructor</th><th>Workshop</th><th>Assigned count</th><th>Students</th><th>Room #</th></tr></thead>
+            <thead><tr><th>Instructor</th><th>Workshop</th><th>Assigned count</th><th>Students (Last, First)</th><th>Room #</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -219,7 +213,7 @@ fieldset.locked{opacity:.7}
       <div id="panelUnplaced" class="hidden">
         <div class="scrollbox">
           <table id="unplacedTable" class="report">
-            <thead><tr><th>Student</th><th>Choices in rank order</th><th>Reason</th></tr></thead>
+            <thead><tr><th>Last Name</th><th>First Name</th><th>Choices in rank order</th><th>Reason</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -249,7 +243,6 @@ try{
     window.addEventListener(evt, e=>{ e.preventDefault(); }, false);
   });
 
-  /* ---------- DOM refs ---------- */
   const numWorkshops=document.getElementById('numWorkshops');
   const buildWorkshopRows=document.getElementById('buildWorkshopRows');
   const workshopCsvFile=document.getElementById('workshopCsvFile');
@@ -296,11 +289,11 @@ try{
   const printUnplacedBtn=document.getElementById('printUnplaced');
   const exportUnplacedCsvBtn=document.getElementById('exportUnplacedCsv');
 
-  /* ---------- State ---------- */
+  if(!numWorkshops || !buildWorkshopRows || !wkContainer){ showInitError('Missing core DOM nodes. Please re-copy the full file.'); throw new Error('missing anchors'); }
+
   let locked=false;
-  // students now store first/last names explicitly
   let workshopList=[]; // {room,name,instructor,capacity}
-  let students=[];     // {id,label,firstName,lastName,preferences:[c1,c2,c3]}
+  let students=[];    // {id,last,first,label,preferences:[c1,c2,c3]}
   let assignMap=new Map();
   let unplaced=[];
   let deletedStack=[];
@@ -310,46 +303,41 @@ try{
     document.getElementById('appRoot')?.setAttribute('aria-busy','false');
   });
 
-  function normalizeName(s){if(!s)return '';let t=String(s).replace(/^"+|"+$/g,'').trim();return t.replace(/\s+/g,' ');}
-  function keyForName(s){return normalizeName(s).toLowerCase();}
-  function enableRunIfReady(){runBtn.disabled=!(locked&&students.length>0);}
+  const normalize=(s)=> (s==null?'':String(s)).replace(/^"+|"+$/g,'').trim().replace(/\s+/g,' ');
+  const key=(s)=> normalize(s).toLowerCase();
+  const enableRunIfReady=()=>{ runBtn.disabled=!(locked && students.length>0); };
 
   let runSeed='';
-  function makeRandomSeed(){
-    try{ const a=new Uint32Array(2); crypto.getRandomValues(a); return String(a[0])+'-'+String(a[1]); }
-    catch(_){ return String(Date.now())+'-'+String(Math.floor(Math.random()*1e9)); }
-  }
-  function setRunSeed(s){ runSeed = String(s || makeRandomSeed()); console.log('Draw seed:', runSeed); }
+  const makeSeed=()=>{ try{const a=new Uint32Array(2);crypto.getRandomValues(a);return a[0]+'-'+a[1];}catch(_){return Date.now()+'-'+Math.floor(Math.random()*1e9)}};
+  const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); console.log('Draw seed:',runSeed); };
 
   function setDropHandlers(zone, onFile) {
     if(!zone) return;
     let dragDepth = 0;
-    const isDisabled=()=>zone.classList.contains('disabled')||zone.hasAttribute('aria-disabled');
-    zone.addEventListener('dragenter', e=>{ if(isDisabled())return; e.preventDefault(); dragDepth++; zone.classList.add('drag'); });
-    zone.addEventListener('dragover', e=>{ if(isDisabled())return; e.preventDefault(); });
-    zone.addEventListener('dragleave', e=>{ if(isDisabled())return; e.preventDefault(); dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0)zone.classList.remove('drag'); });
-    zone.addEventListener('drop', e=>{
-      if(isDisabled())return; e.preventDefault(); dragDepth=0; zone.classList.remove('drag');
+    const isDisabled=()=> zone.classList.contains('disabled') || zone.hasAttribute('aria-disabled');
+    zone.addEventListener('dragenter', (e)=>{ if(isDisabled())return; e.preventDefault(); dragDepth++; zone.classList.add('drag'); });
+    zone.addEventListener('dragover',  (e)=>{ if(isDisabled())return; e.preventDefault(); });
+    zone.addEventListener('dragleave', (e)=>{ if(isDisabled())return; e.preventDefault(); dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0) zone.classList.remove('drag'); });
+    zone.addEventListener('drop',      (e)=>{ if(isDisabled())return; e.preventDefault(); dragDepth=0; zone.classList.remove('drag');
       const dt=e.dataTransfer; let file=null;
       if(dt?.files?.length) file=dt.files[0];
-      else if(dt?.items?.length) for(const it of dt.items) if(it.kind==='file'){file=it.getAsFile();break;}
+      else if(dt?.items?.length){ for(const it of dt.items) if(it.kind==='file'){ file=it.getAsFile(); break; } }
       if(!file){ alert('No file found in drop.'); return; }
       onFile(file);
     });
   }
 
   function setWorkshopControlsEnabled(enabled){
-    numWorkshops.disabled = !enabled;
-    buildWorkshopRows.disabled = !enabled;
-    addWorkshopRowBtn.disabled = !enabled;
-    importWorkshopsBtn.disabled = !enabled;
-    workshopCsvFile.disabled = !enabled;
-    workshopDrop?.classList.toggle('disabled', !enabled);
-    undoDeleteBtn.disabled = !enabled || deletedStack.length===0;
-    clearWorkshops.disabled = !enabled;
+    numWorkshops.disabled=!enabled;
+    buildWorkshopRows.disabled=!enabled;
+    addWorkshopRowBtn.disabled=!enabled;
+    importWorkshopsBtn.disabled=!enabled;
+    workshopCsvFile.disabled=!enabled;
+    workshopDrop?.classList.toggle('disabled',!enabled);
+    undoDeleteBtn.disabled=!enabled || deletedStack.length===0;
+    clearWorkshops.disabled=!enabled;
   }
 
-  /* ---------- Build rows ---------- */
   buildWorkshopRows.onclick=()=>{
     const n=parseInt(numWorkshops.value,10);
     if(!n||n<1||n>20){alert('Choose 1 to 20 workshops');return;}
@@ -376,12 +364,10 @@ try{
     wkContainer.appendChild(row);
   }
   function renderWorkshopGrid(n){
-    wkContainer.innerHTML="";
-    ensureHeader();
+    wkContainer.innerHTML=""; ensureHeader();
     deletedStack=[]; updateUndoState();
     for(let i=0;i<n;i++) newRow({capacity:''});
   }
-
   addWorkshopRowBtn.onclick=()=>{ if(locked) return; ensureHeader(); newRow(); };
 
   wkContainer.addEventListener('click',(e)=>{
@@ -392,7 +378,8 @@ try{
     const rows=[...wkContainer.querySelectorAll('.wkRow')];
     const index=rows.indexOf(row);
     deletedStack.push({data,index});
-    row.remove(); updateUndoState();
+    row.remove();
+    updateUndoState();
   });
   function updateUndoState(){ undoDeleteBtn.disabled = locked || deletedStack.length===0; }
   undoDeleteBtn.onclick=()=>{
@@ -420,14 +407,13 @@ try{
     deletedStack=[]; updateUndoState(); enableRunIfReady();
   };
 
-  /* ---------- CSV utils ---------- */
   function splitCSV(line){const out=[],re=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g;let m;while(m=re.exec(line)){out.push(m[1]?m[1].replace(/""/g,'"'):m[2]);if(!m[3])break;}return out;}
   function parseCSV(text){const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);const rows=[];for(const l of lines)rows.push(splitCSV(l).map(c=>c.trim()));return rows;}
   function extractInt(str){if(str==null)return null;const m=String(str).match(/-?\d+/);if(!m)return null;const n=parseInt(m[0],10);return Number.isFinite(n)?n:null;}
   function detectWorkshopColumns(rows){
     if(!rows.length) return {wIdx:0,iIdx:1,cIdx:null,rIdx:null,startIdx:0};
     const hdr=rows[0].map(c=>c.toLowerCase());
-    const findIdx=(regexes)=>hdr.findIndex(h=>regexes.some(rx=>rx.test(h)));
+    const findIdx=(rxs)=>hdr.findIndex(h=>rxs.some(rx=>rx.test(h)));
     let wIdx=findIdx([/workshop/]), iIdx=findIdx([/instructor/]), cIdx=findIdx([/capacit/,/^cap$/,/(max|seats|size)/]), rIdx=findIdx([/room\s*#?/,/room number/,/^room$/,/(location|^rm$|rm\.)/]);
     let startIdx=0;
     if(wIdx!==-1||iIdx!==-1||cIdx!==-1||rIdx!==-1){startIdx=1;
@@ -439,7 +425,6 @@ try{
     return {wIdx,iIdx,cIdx,rIdx,startIdx};
   }
 
-  /* ---------- Import workshops ---------- */
   async function importWorkshopsFromFile(file){
     try{
       const text=await file.text();
@@ -448,17 +433,17 @@ try{
       const {wIdx,iIdx,cIdx,rIdx,startIdx}=detectWorkshopColumns(rows);
       const seen=new Map();
       for(let i=startIdx;i<rows.length;i++){
-        const name=normalizeName(rows[i][wIdx]||'');
-        const instructor=normalizeName(rows[i][iIdx]||'');
+        const name=normalize(rows[i][wIdx]||'');
+        const instructor=normalize(rows[i][iIdx]||'');
         if(!name) continue;
         let capacity='12';
         if(cIdx!=null){
           const capNum=extractInt(rows[i][cIdx]);
           if(Number.isFinite(capNum)&&capNum>0) capacity=String(capNum);
         }
-        const room=rIdx!=null?normalizeName(rows[i][rIdx]||''):'';
-        const key=keyForName(name);
-        if(!seen.has(key)) seen.set(key,{name,instructor,capacity,room});
+        const room=rIdx!=null?normalize(rows[i][rIdx]||''):'';
+        const k=key(name);
+        if(!seen.has(k)) seen.set(k,{name,instructor,capacity,room});
       }
       const unique=[...seen.values()];
       if(unique.length===0){alert('No workshop names found');return;}
@@ -473,7 +458,6 @@ try{
   importWorkshopsBtn.onclick=()=>{ const f=workshopCsvFile.files?.[0]; if(!f){alert('Choose a workshops CSV file first');return;} importWorkshopsFromFile(f); };
   setDropHandlers(workshopDrop, importWorkshopsFromFile);
 
-  /* ---------- Lock ---------- */
   lockWorkshops.onclick=()=>{
     const names=[...document.querySelectorAll('.wkName')],
           caps=[...document.querySelectorAll('.wkCap')],
@@ -485,18 +469,18 @@ try{
     const seen=new Set();
     workshopList=[];
     for(let i=0;i<names.length;i++){
-      const name=normalizeName(names[i].value),
+      const name=normalize(names[i].value),
             capStr=caps[i].value.trim(),
-            ins=normalizeName(instr[i].value),
-            room=normalizeName(rooms[i].value);
+            ins=normalize(instr[i].value),
+            room=normalize(rooms[i].value);
       let cap=extractInt(capStr);
       [names[i],caps[i],instr[i],rooms[i]].forEach(e=>e.classList.remove('invalid'));
       if(!name){names[i].classList.add('invalid');hasError=true;}
       if(!ins){instr[i].classList.add('invalid');hasError=true;}
       if(!Number.isFinite(cap)||cap<1){cap=12;}
-      const key=keyForName(name);
-      if(seen.has(key)){names[i].classList.add('invalid');hasError=true;}
-      seen.add(key);
+      const k=key(name);
+      if(seen.has(k)){names[i].classList.add('invalid');hasError=true;}
+      seen.add(k);
       workshopList.push({room,name,instructor:ins,capacity:cap});
     }
     if(hasError){wkErrors.textContent='Please fix highlighted fields.';wkErrors.classList.remove('hidden');return;}
@@ -512,45 +496,44 @@ try{
   };
   function enableStudentsSection(enable){ if(csvFile) csvFile.disabled=!enable; studentDrop?.classList.toggle('disabled',!enable); }
 
-  /* ---------- Students: now support Last,First ---------- */
+  // ------ Students parsing: supports (Last,First,Choice1-3) OR legacy (Student,Choice1-3)
   function buildStudents(rows){
     const list=[];
-    const headerLower = rows[0]?.map(c => String(c).toLowerCase()) || [];
-    let startIdx = 0;
-    let mode = 'LF'; // default to Last,First
+    const hdr=(rows[0]||[]).map(c=>c.toLowerCase());
+    let startIdx=0;
+    let mode='lastfirst';
+    let idx={last:0, first:1, c1:2, c2:3, c3:4};
 
-    if (headerLower.length >= 2 && /last/.test(headerLower[0]) && /first/.test(headerLower[1])) {
-      startIdx = 1; mode = 'LF';
-    } else if (headerLower[0]?.includes('student')) {
-      startIdx = 1; mode = 'S'; // legacy "Student, Choice1..."
+    const has = (t)=> hdr.includes(t);
+    if(hdr.length && (has('student') || /student/.test(hdr[0]||''))){
+      mode='legacy';
+      startIdx=1;
+      idx={ student:0, c1:1, c2:2, c3:3 };
+    }else if(hdr.length){
+      // preferred header
+      if(hdr[0]!=='last' || hdr[1]!=='first') startIdx=0; else startIdx=1;
     }
 
-    for (let i=startIdx;i<rows.length;i++){
-      const r = rows[i] || [];
-      let first='', last='', picks=[];
-
-      if (mode === 'LF') {
-        last = (r[0]||'').trim();
-        first = (r[1]||'').trim();
-        picks = r.slice(2).map(normalizeName);
-      } else {
-        const student = (r[0]||'').trim();
-        const m = student.match(/^\s*([^,]+)\s*,\s*(.+)\s*$/); // "Last, First"
-        if (m){ last=m[1]; first=m[2]; } else { last=student; }
-        picks = r.slice(1).map(normalizeName);
+    for(let i=startIdx;i<rows.length;i++){
+      const r=rows[i];
+      let last='', first='', picks=[];
+      if(mode==='legacy'){
+        const label = normalize(r[idx.student]||'');
+        if(!label) continue;
+        // Try split "Last, First" if present
+        const m = label.match(/^\s*([^,]+)\s*,\s*(.+)\s*$/);
+        if(m){ last=normalize(m[1]); first=normalize(m[2]); }
+        else { last=label; first=''; }
+        picks=[normalize(r[idx.c1]||''), normalize(r[idx.c2]||''), normalize(r[idx.c3]||'')];
+      }else{
+        last=normalize(r[idx.last]||r[0]||'');
+        first=normalize(r[idx.first]||r[1]||'');
+        picks=[normalize(r[idx.c1]||r[2]||''), normalize(r[idx.c2]||r[3]||''), normalize(r[idx.c3]||r[4]||'')];
+        if(!last && !first) continue;
       }
-
-      if (!last && !first) continue;
-      const label = (last && first) ? `${last}, ${first}` : (last || first);
-      const uid = label + '##' + i;
-
-      list.push({
-        id: uid,
-        label,
-        firstName: first,
-        lastName: last,
-        preferences: [picks[0]||'', picks[1]||'', picks[2]||'']
-      });
+      const label = last ? (first ? `${last}, ${first}` : last) : first;
+      const id = label + '##' + i;
+      list.push({ id, last, first, label, preferences:[picks[0]||'', picks[1]||'', picks[2]||''] });
     }
     return list;
   }
@@ -564,7 +547,7 @@ try{
       const rows=parseCSV(text);
       if(!rows.length){alert('No rows found in CSV.');return;}
       students=buildStudents(rows);
-      if(students.length===0){alert('No student records detected. Expect columns: Last, First, Choice1, Choice2, Choice3.');return;}
+      if(students.length===0){alert('No student records detected.');return;}
       renderStudentsPreview(); enableRunIfReady();
     }catch(err){console.error(err);alert('Could not read student CSV.');}
   }
@@ -575,19 +558,15 @@ try{
     if(students.length===0){studentsPreview.classList.add('hidden');return;}
     studentsPreview.classList.remove('hidden');
     studentsTableBody.innerHTML='';
-    const sorted=students.slice().sort((a,b)=>{
-      const ln=a.lastName.localeCompare(b.lastName);
-      return ln!==0?ln:a.firstName.localeCompare(b.firstName);
-    });
+    const sorted=students.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const s of sorted){
       const [c1,c2,c3]=s.preferences;
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${s.lastName||''}</td><td>${s.firstName||''}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td>`;
+      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td>`;
       studentsTableBody.appendChild(tr);
     }
   }
 
-  /* ---------- Fairness helpers ---------- */
   function hash32(str){
     let h=2166136261>>>0;
     for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=(h>>>0)*16777619>>>0;}
@@ -605,21 +584,24 @@ try{
     });
   }
 
-  /* ---------- Assignment ---------- */
   function assignStudents(){
-    const nameToIdx=new Map(); workshopList.forEach((w,i)=>nameToIdx.set(keyForName(w.name),i));
+    const nameToIdx=new Map();
+    workshopList.forEach((w,i)=>nameToIdx.set(key(w.name),i));
+
     const cap=workshopList.map(w=>w.capacity);
     const fill=new Array(workshopList.length).fill(0);
-    assignMap=new Map(); unplaced=[];
+    assignMap=new Map();
+    unplaced=[];
+
     const unassigned = new Map(students.map(s=>[s.id,s]));
 
     function passAssign(rankIdx){
       const byWorkshop = new Map();
       for(const s of unassigned.values()){
         const choice = s.preferences[rankIdx] || '';
-        const key = keyForName(choice);
-        if(!choice || !nameToIdx.has(key)) continue;
-        const idx = nameToIdx.get(key);
+        const k = key(choice);
+        if(!choice || !nameToIdx.has(k)) continue;
+        const idx = nameToIdx.get(k);
         if(!byWorkshop.has(idx)) byWorkshop.set(idx, []);
         byWorkshop.get(idx).push(s);
       }
@@ -641,7 +623,8 @@ try{
     for(const s of [...unassigned.values()]){
       let minFill = Infinity;
       for (let i=0;i<workshopList.length;i++) if (fill[i] < cap[i]) minFill = Math.min(minFill, fill[i]);
-      const tied=[]; for (let i=0;i<workshopList.length;i++) if (fill[i] < cap[i] && fill[i]===minFill) tied.push(i);
+      const tied=[];
+      for (let i=0;i<workshopList.length;i++) if (fill[i] < cap[i] && fill[i]===minFill) tied.push(i);
       if(tied.length>0){
         const pick = tied[ hash32(String(s.id) + '|fallback|' + runSeed) % tied.length ];
         assignMap.set(s.id, workshopList[pick].name);
@@ -651,14 +634,14 @@ try{
     }
 
     for(const s of unassigned.values()){
-      const known = s.preferences.filter(p => nameToIdx.has(keyForName(p)));
+      const known = s.preferences.filter(p => nameToIdx.has(key(p)));
       const reason = known.length===0 ? 'choices unknown' : 'no capacity remaining';
-      unplaced.push({id:s.id, label:s.label, preferences:s.preferences, reason});
+      unplaced.push({id:s.id, last:s.last, first:s.first, preferences:s.preferences, reason});
     }
+
     return {fill};
   }
 
-  /* ---------- Run & Report ---------- */
   runBtn.onclick=()=>{
     if(!locked){alert('Lock workshops first');return;}
     if(students.length===0){alert('Load students first');return;}
@@ -678,6 +661,7 @@ try{
 
     const roomByName = new Map(workshopList.map(w => [w.name, w.room || '']));
 
+    // SUMMARY
     balanceTableBody.innerHTML='';
     const wsSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
     wsSorted.forEach(w=>{
@@ -687,18 +671,20 @@ try{
       balanceTableBody.appendChild(tr);
     });
 
+    // STUDENT ASSIGNMENTS (with Last, First)
     studentTableBody.innerHTML='';
-    const stSorted=students.slice().sort((a,b)=>a.label.localeCompare(b.label));
+    const stSorted=students.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const s of stSorted){
       const assigned=assignMap.get(s.id)||'';
       const room=roomByName.get(assigned)||'';
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${s.label}</td><td>${assigned}</td><td>${room}</td>`;
+      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${assigned}</td><td>${room}</td>`;
       studentTableBody.appendChild(tr);
     }
 
+    // ROSTERS (names as "Last, First" comma-separated)
     const roster=new Map(); workshopList.forEach(w=>roster.set(w.name,[]));
-    for(const s of students){const a=assignMap.get(s.id); if(a) roster.get(a).push(s.label);}
+    for(const s of students){const a=assignMap.get(s.id); if(a) roster.get(a).push(`${s.last}${s.first?`, ${s.first}`:''}`);}
     rosterTableBody.innerHTML='';
     const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
     roSorted.forEach(w=>{
@@ -708,16 +694,16 @@ try{
       rosterTableBody.appendChild(tr);
     });
 
+    // UNPLACED
     unplacedTableBody.innerHTML='';
-    const unSorted=unplaced.slice().sort((a,b)=>a.label.localeCompare(b.label));
+    const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const u of unSorted){
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${u.label}</td><td>${u.preferences.join(' | ')}</td><td>${u.reason}</td>`;
+      tr.innerHTML=`<td>${u.last}</td><td>${u.first}</td><td>${u.preferences.join(' | ')}</td><td>${u.reason}</td>`;
       unplacedTableBody.appendChild(tr);
     }
   }
 
-  /* ---------- CSV helpers ---------- */
   function toCSVFromTable(tableId) {
     const t = document.getElementById(tableId);
     if (!t) return '';
@@ -732,11 +718,10 @@ try{
     URL.revokeObjectURL(url);
   }
 
-  /* ---------- Print/Export ---------- */
+  // PRINT/EXPORT
   function exportToPDF(title, html) {
     const lib = window.html2pdf;
     if(!lib){ alert('PDF library did not load. Try again or check your network.'); return; }
-
     const host = document.createElement('div');
     host.style.position='fixed'; host.style.top='0'; host.style.left='0';
     host.style.zIndex='-1'; host.style.visibility='hidden'; host.style.width='100%';
@@ -757,7 +742,7 @@ try{
       thead { display: table-header-group; }
       .report thead th { background:#f8fafc; font-weight:600; }
       .report th, .report td {
-        border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; padding:7pt 8pt; line-height:1.25; vertical-align: top; text-align: left;
+        border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; padding:7pt 8pt; line-height:1.25; text-align: left; vertical-align: top;
       }
       .report th:last-child, .report td:last-child { border-right:0 }
       .report tr:last-child td { border-bottom:0 }
@@ -784,6 +769,7 @@ try{
       const url = pdf.output('bloburl'); window.open(url, '_blank');
     }).finally(()=>host.remove());
   }
+
   function paginateByHeight({tableEl, label, extraTableClass='', transformRow, overrideHeadHTML}) {
     const measHost = document.createElement('div');
     measHost.style.position='fixed'; measHost.style.left='-10000px'; measHost.style.top='0';
@@ -823,6 +809,7 @@ try{
     pages.push(wrap.outerHTML); measHost.remove(); return pages.join('');
   }
 
+  // Buttons
   if (printStudentsBtn) {
     printStudentsBtn.onclick = () => {
       const table = document.getElementById('studentsTable');
@@ -847,7 +834,7 @@ try{
 
   printRostersBtn.onclick = () => {
     const src = document.getElementById('rosterTable');
-    const head = `<tr><th>Workshop</th><th>Instructor</th><th>Assigned count</th><th>Students</th><th>Room #</th></tr>`;
+    const head = `<tr><th>Workshop</th><th>Instructor</th><th>Assigned count</th><th>Students (Last, First)</th><th>Room #</th></tr>`;
     const html = paginateByHeight({
       tableEl: src, label: 'Workshop rosters', overrideHeadHTML: head,
       transformRow: (r) => {
@@ -884,6 +871,7 @@ try{
   tabStudents.onclick = () => setTab('students');
   tabRosters.onclick = () => setTab('rosters');
   tabUnplaced.onclick = () => setTab('unplaced');
+
 }catch(err){
   console.error(err);
   showInitError(err && err.message ? err.message : String(err));
