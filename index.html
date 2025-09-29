@@ -39,7 +39,7 @@ button[disabled]{opacity:.55;cursor:not-allowed}
 .note{color:var(--muted);font-size:12px}
 .tabs{display:flex;gap:8px;margin:8px 0 0}
 .tab{padding:8px 12px;border:1px solid var(--line-soft);border-bottom:0;border-radius:10px 10px 0 0;background:#f8fafc;cursor:pointer}
-.tab.active{background:#fff;border-color:var(--lsu-purple);color:var(--lsu-purple)} /* fixed */
+.tab.active{background:#fff;border-color:var(--lsu-purple);color:var(--lsu-purple)}
 .panel{border:1px solid var(--line-soft);border-radius:0 12px 12px 12px;background:#fff;padding:12px}
 
 /* tables */
@@ -69,11 +69,11 @@ tbody tr:hover td{background:#fcfcff}
 fieldset.locked{opacity:.7}
 .locknote{font-size:12px;color:#374151;background:#FFFBEB;border:1px solid #FDE68A;padding:8px;border-radius:8px}
 @media print{.header,.tabs,.printbar,.badge{display:none !important}}
-/* visible fallback if JS fails to run at all */
+/* visible fallback if JS fails */
 .nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
 </style>
 
-<!-- External library only used on export clicks -->
+<!-- External lib only used when you click “Export PDF” -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 </head>
 <body>
@@ -130,14 +130,17 @@ fieldset.locked{opacity:.7}
     <div class="badge">step 2 of 3</div>
     <div style="margin-top:6px">Load students with three ranked choices</div>
     <div class="two">
-      <div><label class="small">Upload CSV with columns: Student, Choice1, Choice2, Choice3</label><input id="csvFile" type="file" accept=".csv" disabled></div>
+      <div>
+        <label class="small">Upload CSV with columns: <b>Last, First, Choice1, Choice2, Choice3</b></label>
+        <input id="csvFile" type="file" accept=".csv" disabled>
+      </div>
       <div id="studentDrop" class="dropzone disabled">Drag &amp; drop Student CSV here</div>
     </div>
     <div id="studentsPreview" class="hidden" style="margin-top:10px">
       <div class="badge">loaded students</div>
       <div class="scrollbox">
         <table id="studentsTable" class="report">
-          <thead><tr><th>Student</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th></tr></thead>
+          <thead><tr><th>Last Name</th><th>First Name</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -230,7 +233,6 @@ fieldset.locked{opacity:.7}
 </div>
 
 <script>
-/* Graceful error banner if something throws before UI is interactive */
 function showInitError(msg){
   try{
     const root=document.getElementById('appRoot');
@@ -243,12 +245,11 @@ function showInitError(msg){
 }
 
 try{
-  /* ---------- Global DnD guards ---------- */
   ['dragover','drop'].forEach(evt=>{
     window.addEventListener(evt, e=>{ e.preventDefault(); }, false);
   });
 
-  /* ---------- DOM ---------- */
+  /* ---------- DOM refs ---------- */
   const numWorkshops=document.getElementById('numWorkshops');
   const buildWorkshopRows=document.getElementById('buildWorkshopRows');
   const workshopCsvFile=document.getElementById('workshopCsvFile');
@@ -295,29 +296,24 @@ try{
   const printUnplacedBtn=document.getElementById('printUnplaced');
   const exportUnplacedCsvBtn=document.getElementById('exportUnplacedCsv');
 
-  /* null guard: if any key anchors are missing, bail with a friendly notice */
-  if(!numWorkshops || !buildWorkshopRows || !wkContainer){ showInitError('Missing core DOM nodes. Please re-copy the full file.'); throw new Error('missing anchors'); }
-
   /* ---------- State ---------- */
   let locked=false;
+  // students now store first/last names explicitly
   let workshopList=[]; // {room,name,instructor,capacity}
-  let students=[];    // {id, label, preferences:[c1,c2,c3]}
+  let students=[];     // {id,label,firstName,lastName,preferences:[c1,c2,c3]}
   let assignMap=new Map();
   let unplaced=[];
   let deletedStack=[];
 
-  /* ---------- Init ---------- */
   document.addEventListener('DOMContentLoaded',()=>{
     for(let i=1;i<=20;i++){const o=document.createElement('option');o.value=o.textContent=String(i);numWorkshops.appendChild(o);}
     document.getElementById('appRoot')?.setAttribute('aria-busy','false');
   });
 
-  /* ---------- Helpers ---------- */
-  function normalizeName(s){if(!s)return '';let t=s.replace(/^"+|"+$/g,'').trim();return t.replace(/\s+/g,' ');}
+  function normalizeName(s){if(!s)return '';let t=String(s).replace(/^"+|"+$/g,'').trim();return t.replace(/\s+/g,' ');}
   function keyForName(s){return normalizeName(s).toLowerCase();}
   function enableRunIfReady(){runBtn.disabled=!(locked&&students.length>0);}
 
-  /* Seed utilities (fresh seed per run; logged to console for audit) */
   let runSeed='';
   function makeRandomSeed(){
     try{ const a=new Uint32Array(2); crypto.getRandomValues(a); return String(a[0])+'-'+String(a[1]); }
@@ -325,44 +321,23 @@ try{
   }
   function setRunSeed(s){ runSeed = String(s || makeRandomSeed()); console.log('Draw seed:', runSeed); }
 
-  /* Robust file drop handler */
   function setDropHandlers(zone, onFile) {
     if(!zone) return;
     let dragDepth = 0;
-    function isDisabled(){ return zone.classList.contains('disabled') || zone.hasAttribute('aria-disabled'); }
-
-    zone.addEventListener('dragenter', (e) => {
-      if (isDisabled()) return;
-      e.preventDefault(); e.stopPropagation();
-      dragDepth++; zone.classList.add('drag');
-    });
-    zone.addEventListener('dragover', (e) => {
-      if (isDisabled()) return;
-      e.preventDefault(); e.stopPropagation();
-    });
-    zone.addEventListener('dragleave', (e) => {
-      if (isDisabled()) return;
-      e.preventDefault(); e.stopPropagation();
-      dragDepth = Math.max(0, dragDepth-1);
-      if (dragDepth === 0) zone.classList.remove('drag');
-    });
-    zone.addEventListener('drop', (e) => {
-      if (isDisabled()) return;
-      e.preventDefault(); e.stopPropagation();
-      dragDepth = 0; zone.classList.remove('drag');
-
-      const dt = e.dataTransfer;
-      let file = null;
-      if (dt && dt.files && dt.files.length) file = dt.files[0];
-      else if (dt && dt.items && dt.items.length){
-        for (const it of dt.items) if (it.kind==='file'){ file = it.getAsFile(); break; }
-      }
-      if (!file) { alert('No file found in drop.'); return; }
+    const isDisabled=()=>zone.classList.contains('disabled')||zone.hasAttribute('aria-disabled');
+    zone.addEventListener('dragenter', e=>{ if(isDisabled())return; e.preventDefault(); dragDepth++; zone.classList.add('drag'); });
+    zone.addEventListener('dragover', e=>{ if(isDisabled())return; e.preventDefault(); });
+    zone.addEventListener('dragleave', e=>{ if(isDisabled())return; e.preventDefault(); dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0)zone.classList.remove('drag'); });
+    zone.addEventListener('drop', e=>{
+      if(isDisabled())return; e.preventDefault(); dragDepth=0; zone.classList.remove('drag');
+      const dt=e.dataTransfer; let file=null;
+      if(dt?.files?.length) file=dt.files[0];
+      else if(dt?.items?.length) for(const it of dt.items) if(it.kind==='file'){file=it.getAsFile();break;}
+      if(!file){ alert('No file found in drop.'); return; }
       onFile(file);
     });
   }
 
-  /* Enable/disable Step 1 controls */
   function setWorkshopControlsEnabled(enabled){
     numWorkshops.disabled = !enabled;
     buildWorkshopRows.disabled = !enabled;
@@ -394,7 +369,8 @@ try{
     const row=document.createElement('div');
     row.className='five wkRow';
     row.innerHTML=`<input type="text" class="wkInstructor" placeholder="Instructor name" value="${instructor}">
-      <input type="text" class="wkName" placeholder="Workshop" value="${name}"><input type="number" class="wkCap" min="1" value="${capacity}">
+      <input type="text" class="wkName" placeholder="Workshop" value="${name}">
+      <input type="number" class="wkCap" min="1" value="${capacity}">
       <input type="text" class="wkRoom" placeholder="e.g., BH 101 (optional)" value="${room}">
       <button type="button" class="smallbtn wkDel" title="Delete this row">×</button>`;
     wkContainer.appendChild(row);
@@ -406,10 +382,8 @@ try{
     for(let i=0;i<n;i++) newRow({capacity:''});
   }
 
-  /* Add row */
   addWorkshopRowBtn.onclick=()=>{ if(locked) return; ensureHeader(); newRow(); };
 
-  /* Delete row + undo support */
   wkContainer.addEventListener('click',(e)=>{
     const btn=e.target.closest?.('.wkDel'); if(!btn || locked) return;
     const row=btn.closest('.wkRow'); if(!row) return;
@@ -418,8 +392,7 @@ try{
     const rows=[...wkContainer.querySelectorAll('.wkRow')];
     const index=rows.indexOf(row);
     deletedStack.push({data,index});
-    row.remove();
-    updateUndoState();
+    row.remove(); updateUndoState();
   });
   function updateUndoState(){ undoDeleteBtn.disabled = locked || deletedStack.length===0; }
   undoDeleteBtn.onclick=()=>{
@@ -439,7 +412,6 @@ try{
     updateUndoState();
   };
 
-  /* ---------- Clear ---------- */
   clearWorkshops.onclick=()=>{
     wkContainer.innerHTML=""; numWorkshops.value="0"; wkErrors.classList.add('hidden');
     enableStudentsSection(false); locked=false; wkFieldset.classList.remove('locked'); lockNote.classList.add('hidden');
@@ -540,23 +512,49 @@ try{
   };
   function enableStudentsSection(enable){ if(csvFile) csvFile.disabled=!enable; studentDrop?.classList.toggle('disabled',!enable); }
 
-  /* ---------- Students (unique internal IDs, no warnings) ---------- */
+  /* ---------- Students: now support Last,First ---------- */
   function buildStudents(rows){
     const list=[];
-    const headerLower=rows[0]?.map(c=>c.toLowerCase())||[];
-    let startIdx=0;
-    if(headerLower[0]?.includes('student')) startIdx=1;
+    const headerLower = rows[0]?.map(c => String(c).toLowerCase()) || [];
+    let startIdx = 0;
+    let mode = 'LF'; // default to Last,First
 
-    for(let i=startIdx;i<rows.length;i++){
-      const r = rows[i];
-      const label = (r[0]||'').trim();
-      if(!label) continue;
-      const uid   = label + '##' + i;
-      const picks = r.slice(1).map(normalizeName);
-      list.push({ id: uid, label, preferences:[picks[0]||'',picks[1]||'',picks[2]||''] });
+    if (headerLower.length >= 2 && /last/.test(headerLower[0]) && /first/.test(headerLower[1])) {
+      startIdx = 1; mode = 'LF';
+    } else if (headerLower[0]?.includes('student')) {
+      startIdx = 1; mode = 'S'; // legacy "Student, Choice1..."
+    }
+
+    for (let i=startIdx;i<rows.length;i++){
+      const r = rows[i] || [];
+      let first='', last='', picks=[];
+
+      if (mode === 'LF') {
+        last = (r[0]||'').trim();
+        first = (r[1]||'').trim();
+        picks = r.slice(2).map(normalizeName);
+      } else {
+        const student = (r[0]||'').trim();
+        const m = student.match(/^\s*([^,]+)\s*,\s*(.+)\s*$/); // "Last, First"
+        if (m){ last=m[1]; first=m[2]; } else { last=student; }
+        picks = r.slice(1).map(normalizeName);
+      }
+
+      if (!last && !first) continue;
+      const label = (last && first) ? `${last}, ${first}` : (last || first);
+      const uid = label + '##' + i;
+
+      list.push({
+        id: uid,
+        label,
+        firstName: first,
+        lastName: last,
+        preferences: [picks[0]||'', picks[1]||'', picks[2]||'']
+      });
     }
     return list;
   }
+
   async function importStudentsFromFile(file){
     try{
       const name=(file?.name||'').toLowerCase();
@@ -566,7 +564,7 @@ try{
       const rows=parseCSV(text);
       if(!rows.length){alert('No rows found in CSV.');return;}
       students=buildStudents(rows);
-      if(students.length===0){alert('No student records detected. Expect columns: Student, Choice1, Choice2, Choice3.');return;}
+      if(students.length===0){alert('No student records detected. Expect columns: Last, First, Choice1, Choice2, Choice3.');return;}
       renderStudentsPreview(); enableRunIfReady();
     }catch(err){console.error(err);alert('Could not read student CSV.');}
   }
@@ -577,11 +575,14 @@ try{
     if(students.length===0){studentsPreview.classList.add('hidden');return;}
     studentsPreview.classList.remove('hidden');
     studentsTableBody.innerHTML='';
-    const sorted=students.slice().sort((a,b)=>a.label.localeCompare(b.label));
+    const sorted=students.slice().sort((a,b)=>{
+      const ln=a.lastName.localeCompare(b.lastName);
+      return ln!==0?ln:a.firstName.localeCompare(b.firstName);
+    });
     for(const s of sorted){
       const [c1,c2,c3]=s.preferences;
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${s.label}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td>`;
+      tr.innerHTML=`<td>${s.lastName||''}</td><td>${s.firstName||''}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td>`;
       studentsTableBody.appendChild(tr);
     }
   }
@@ -606,14 +607,10 @@ try{
 
   /* ---------- Assignment ---------- */
   function assignStudents(){
-    const nameToIdx=new Map();
-    workshopList.forEach((w,i)=>nameToIdx.set(keyForName(w.name),i));
-
+    const nameToIdx=new Map(); workshopList.forEach((w,i)=>nameToIdx.set(keyForName(w.name),i));
     const cap=workshopList.map(w=>w.capacity);
     const fill=new Array(workshopList.length).fill(0);
-    assignMap=new Map();
-    unplaced=[];
-
+    assignMap=new Map(); unplaced=[];
     const unassigned = new Map(students.map(s=>[s.id,s]));
 
     function passAssign(rankIdx){
@@ -644,8 +641,7 @@ try{
     for(const s of [...unassigned.values()]){
       let minFill = Infinity;
       for (let i=0;i<workshopList.length;i++) if (fill[i] < cap[i]) minFill = Math.min(minFill, fill[i]);
-      const tied=[];
-      for (let i=0;i<workshopList.length;i++) if (fill[i] < cap[i] && fill[i]===minFill) tied.push(i);
+      const tied=[]; for (let i=0;i<workshopList.length;i++) if (fill[i] < cap[i] && fill[i]===minFill) tied.push(i);
       if(tied.length>0){
         const pick = tied[ hash32(String(s.id) + '|fallback|' + runSeed) % tied.length ];
         assignMap.set(s.id, workshopList[pick].name);
@@ -659,7 +655,6 @@ try{
       const reason = known.length===0 ? 'choices unknown' : 'no capacity remaining';
       unplaced.push({id:s.id, label:s.label, preferences:s.preferences, reason});
     }
-
     return {fill};
   }
 
@@ -877,7 +872,6 @@ try{
   };
   exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
 
-  /* ---------- Tabs ---------- */
   function setTab(which) {
     [tabSummary, tabStudents, tabRosters, tabUnplaced].forEach(t => t.classList.remove('active'));
     [panelSummary, panelStudents, panelRosters, panelUnplaced].forEach(p => p.classList.add('hidden'));
