@@ -79,7 +79,13 @@ table.report{
 
 /* Step 2 issue highlighting */
 .row-issue td{ background:#FFF7ED; }
-.issue-badge{ font-size:11px; padding:2px 6px; border-radius:999px; background:#FEF3C7; border:1px solid #FDE68A; color:#92400E; }
+
+/* New: issues cell chips */
+.issues{ display:flex; flex-wrap:wrap; gap:6px; }
+.issue-pill{
+  font-size:11px; padding:2px 8px; border-radius:999px;
+  background:#FEF3C7; border:1px solid #FDE68A; color:#92400E;
+}
 .issue-legend{ color:#6b7280; font-size:12px; margin-top:6px }
 
 /* Document-style rosters */
@@ -158,7 +164,7 @@ table.report{
         <label class="small">Upload Workshops CSV (Instructor, Workshop, Room, Capacity)</label>
         <input id="workshopCsvFile" type="file" accept=".csv">
       </div>
-      <div id="workshopDrop" class="dropzone" tabindex="0" role="button" aria-label="Drop workshops CSV here or click to browse">Drag &amp; drop Workshops CSV here</div>
+      <div id="workshopDrop" class="dropzone" tabindex="0" role="button" aria-label="Drop workshops CSV here or click to browse">Drag and drop Workshops CSV here</div>
     </div>
     <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
       <button id="importWorkshopsBtn" class="ghost">Import workshops</button>
@@ -189,7 +195,7 @@ table.report{
         </label>
         <input id="csvFile" type="file" accept=".csv" disabled>
       </div>
-      <div id="studentDrop" class="dropzone disabled" tabindex="0" role="button" aria-label="Drop students CSV here or click to browse">Drag &amp; drop Student CSV here</div>
+      <div id="studentDrop" class="dropzone disabled" tabindex="0" role="button" aria-label="Drop students CSV here or click to browse">Drag and drop Student CSV here</div>
     </div>
 
     <div id="studentsPreview" class="hidden" style="margin-top:10px">
@@ -203,7 +209,7 @@ table.report{
         </table>
       </div>
       <div id="issueLegend" class="issue-legend hidden">
-        <span class="issue-badge">⚠</span> indicates: missing choice, duplicate choice, or an unknown workshop name.
+        Issues show the reason a student is flagged. Examples: Missing one or more choices, Duplicate choices, Unknown workshop name.
       </div>
       <div class="printbar" style="margin-top:8px">
         <button id="printStudents" class="ghost">Export students (PDF)</button>
@@ -573,7 +579,6 @@ try{
       if(!fname.endsWith('.csv')){alert('Please use a .csv file for workshops (not .xlsx).');return;}
       const text=await file.text();
       const rows=parseCSV(text);
-      // Strip possible BOM in first cell (Excel sometimes adds it)
       if(rows.length && rows[0].length){ rows[0][0]=String(rows[0][0]).replace(/^\uFEFF/,''); }
       if(rows.length===0){alert('No rows found');return;}
 
@@ -594,11 +599,9 @@ try{
         let capacity = '12';
         if(Number.isFinite(capNum) && capNum > 0) capacity = String(capNum);
 
-        // Skip empty lines; require a workshop title
         if (!name && !instructor) continue;
         if (!name) continue;
 
-        // De-dupe by title+instructor
         const k = key(name) + '|' + key(instructor);
         if(!seen.has(k)) seen.set(k,{name,instructor,capacity,room});
       }
@@ -703,7 +706,7 @@ try{
     const [c1,c2,c3]=s.preferences.map(normalize);
     const issues=[];
     if ((c1 && c2 && c1===c2) || (c1 && c3 && c1===c3) || (c2 && c3 && c2===c3)) {
-      issues.push('Duplicate choice(s)');
+      issues.push('Duplicate choices');
     }
     if(!c1 || !c2 || !c3) issues.push('Missing one or more choices');
     const valid=validWorkshopKeySet();
@@ -732,6 +735,13 @@ try{
   csvFile?.addEventListener('change',()=>{const f=csvFile.files?.[0];if(f)importStudentsFromFile(f);});
   setDropHandlers({zone: studentDrop, onFile: importStudentsFromFile, input: csvFile, acceptExts:['.csv']});
 
+  function issuesHTML(issues){
+    if(!issues || !issues.length) return '';
+    return `<div class="issues" title="${issues.join(' • ')}">` +
+           issues.map(t=>`<span class="issue-pill">${t}</span>`).join('') +
+           `</div>`;
+  }
+
   function renderStudentsPreview(){
     if(students.length===0){studentsPreview.classList.add('hidden');return;}
     studentsPreview.classList.remove('hidden');
@@ -743,8 +753,7 @@ try{
       const issues = s._issues || [];
       const tr=document.createElement('tr');
       if(issues.length){ tr.classList.add('row-issue'); anyIssues=true; }
-      const badge = issues.length ? `<span class="issue-badge" title="${issues.join(' • ')}">⚠</span>` : '';
-      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td><td>${badge}</td>`;
+      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td><td>${issuesHTML(issues)}</td>`;
       studentsTableBody.appendChild(tr);
     }
     const legend=document.getElementById('issueLegend');
@@ -937,7 +946,7 @@ try{
   }
   printSummaryBtn.onclick = () => {
     const table = document.getElementById('balanceTable');
-    const html = paginateByHeight({tableEl: table,label: 'Workshop capacities & assignments',extraTableClass: 'summary-table'});
+    const html = paginateByHeight({tableEl: table,label: 'Workshop capacities and assignments',extraTableClass: 'summary-table'});
     exportToPDF('Summary', html);
   };
   exportSummaryCsvBtn.onclick = () => downloadCSV(toCSVFromTable('balanceTable'), 'summary.csv');
@@ -949,7 +958,7 @@ try{
   };
   exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
 
-  // Roster PDF/CSV
+  // Rosters PDF/CSV
   printRostersBtn.onclick = () => {
     const html = buildRosterHTMLForPDF();
     exportToPDF('Workshop Rosters', html);
