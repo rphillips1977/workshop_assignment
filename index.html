@@ -40,13 +40,6 @@ button[disabled]{opacity:.55;cursor:not-allowed}
 .tab{padding:8px 12px;border:1px solid var(--line-soft);border-bottom:0;border-radius:10px 10px 0 0;background:#f8fafc;cursor:pointer}
 .tab.active{background:#fff;border-color:var(--lsu-purple);color:var(--lsu-purple)}
 .panel{border:1px solid var(--line-soft);border-radius:0 12px 12px 12px;background:#fff;padding:12px}
-
-/* drop zones */
-.dropzone{display:flex;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:12px;min-height:44px;color:#6b7280;background:#fff; user-select:none}
-.dropzone.drag{border-color:var(--lsu-purple);background:#faf5ff}
-.dropzone.disabled{opacity:.6;pointer-events:none}
-
-/* tables */
 table{width:100%}
 table.report{
   border-collapse:separate;border-spacing:0;border:1px solid var(--line);
@@ -59,37 +52,19 @@ table.report{
 }
 .report th:last-child,.report td:last-child{border-right:0}
 .report tr:last-child td{border-bottom:0}
-
-/* Summary align */
 #balanceTable th:nth-child(3),#balanceTable td:nth-child(3),
 #balanceTable th:nth-child(4),#balanceTable td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
 #balanceTable th:nth-child(5),#balanceTable td:nth-child(5){white-space:nowrap}
-
-/* Preview issue highlighting */
-.row-issue td{ background:#FFF7ED; }
-.issue-badge{ font-size:11px; padding:2px 6px; border-radius:999px; background:#FEF3C7; border:1px solid #FDE68A; color:#92400E; }
-.issue-legend{ color:#6b7280; font-size:12px; margin-top:6px }
-
-/* Rosters */
-#rosterTable thead{ display:none; }
-.roster-title td{
-  background:#f3f4f6;
-  font-weight:800;
-  text-align:center;
-  font-size:16px;
-}
-.roster-title .ws-name{font-weight:900}
-.roster-title .instructor{font-weight:800}
-.roster-title .room{color:#374151}
-.roster-title .count{float:right; font-weight:800}
-.roster-spacer td{background:#fff;height:8px;border:0}
-
-/* Fallback if JS dies early */
-.nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
-
+tbody tr:hover td{background:#fcfcff}
+.scrollbox{max-height:340px;overflow:auto;border:1px solid var(--line-soft);border-radius:12px;padding:6px;background:#fff}
+.dropzone{border:2px dashed #c7c9d1;border-radius:12px;padding:16px;text-align:center;color:#6b7280;background:#fff;transition:border-color .15s,background .15s,color .15s}
+.dropzone.drag{border-color:var(--lsu-purple);background:#f6f5ff;color:#3b2a6b}
+.dropzone.disabled{opacity:.5;filter:grayscale(20%);pointer-events:none}
+fieldset.locked{opacity:.7}
+.locknote{font-size:12px;color:#374151;background:#FFFBEB;border:1px solid #FDE68A;padding:8px;border-radius:8px}
 @media print{.header,.tabs,.printbar,.badge{display:none !important}}
+.nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
 </style>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 </head>
 <body>
@@ -120,7 +95,7 @@ table.report{
         <label class="small">Upload Workshops CSV (Workshop, Instructor, [Capacity], [Room])</label>
         <input id="workshopCsvFile" type="file" accept=".csv">
       </div>
-      <div id="workshopDrop" class="dropzone" tabindex="0" role="button" aria-label="Drop workshops CSV here or click to browse">Drag &amp; drop Workshops CSV here</div>
+      <div id="workshopDrop" class="dropzone">Drag &amp; drop Workshops CSV here</div>
     </div>
     <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
       <button id="importWorkshopsBtn" class="ghost">Import workshops</button>
@@ -151,21 +126,17 @@ table.report{
         </label>
         <input id="csvFile" type="file" accept=".csv" disabled>
       </div>
-      <div id="studentDrop" class="dropzone disabled" tabindex="0" role="button" aria-label="Drop students CSV here or click to browse">Drag &amp; drop Student CSV here</div>
+      <div id="studentDrop" class="dropzone disabled">Drag &amp; drop Student CSV here</div>
     </div>
-
     <div id="studentsPreview" class="hidden" style="margin-top:10px">
       <div class="badge">loaded students</div>
       <div class="scrollbox">
         <table id="studentsTable" class="report">
           <thead>
-            <tr><th>Last Name</th><th>First Name</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th><th>Issues</th></tr>
+            <tr><th>Last Name</th><th>First Name</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th></tr>
           </thead>
           <tbody></tbody>
         </table>
-      </div>
-      <div class="issue-legend">
-        <span class="issue-badge">⚠</span> indicates: all three choices are the same, missing a choice, or an invalid workshop name.
       </div>
       <div class="printbar">
         <button id="printStudents" class="ghost">Export students (PDF)</button>
@@ -229,9 +200,7 @@ table.report{
       <div id="panelRosters" class="hidden">
         <div class="scrollbox">
           <table id="rosterTable" class="report">
-            <thead>
-              <tr><th>Instructor</th><th>Workshop</th><th>Assigned count</th><th>Room #</th></tr>
-            </thead>
+            <thead><tr><th>Instructor</th><th>Workshop</th><th>Assigned count</th><th>Students (Last, First)</th><th>Room #</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -270,14 +239,9 @@ function showInitError(msg){
 }
 
 try{
-  // Strong global guards so browser never navigates away on a drop
-  ['dragenter','dragover'].forEach(evt=>{
-    document.addEventListener(evt, e=>{
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-    }, {passive:false});
+  ['dragover','drop'].forEach(evt=>{
+    window.addEventListener(evt, e=>{ e.preventDefault(); }, false);
   });
-  document.addEventListener('drop', e=>{ e.preventDefault(); }, {passive:false});
 
   const numWorkshops=document.getElementById('numWorkshops');
   const buildWorkshopRows=document.getElementById('buildWorkshopRows');
@@ -328,8 +292,8 @@ try{
   if(!numWorkshops || !buildWorkshopRows || !wkContainer){ showInitError('Missing core DOM nodes. Please re-copy the full file.'); throw new Error('missing anchors'); }
 
   let locked=false;
-  let workshopList=[];
-  let students=[];
+  let workshopList=[]; // {room,name,instructor,capacity}
+  let students=[];    // {id,last,first,label,preferences:[c1,c2,c3]}
   let assignMap=new Map();
   let unplaced=[];
   let deletedStack=[];
@@ -339,7 +303,6 @@ try{
     document.getElementById('appRoot')?.setAttribute('aria-busy','false');
   });
 
-  // Helpers
   const normalize=(s)=> (s==null?'':String(s)).replace(/^"+|"+$/g,'').trim().replace(/\s+/g,' ');
   const key=(s)=> normalize(s).toLowerCase();
   const enableRunIfReady=()=>{ runBtn.disabled=!(locked && students.length>0); };
@@ -348,70 +311,18 @@ try{
   const makeSeed=()=>{ try{const a=new Uint32Array(2);crypto.getRandomValues(a);return a[0]+'-'+a[1];}catch(_){return Date.now()+'-'+Math.floor(Math.random()*1e9)}};
   const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); console.log('Draw seed:',runSeed); };
 
-  // Robust drag & drop hookup (fixes: Safari, nested leaves, disabled state, click-to-browse)
-  function setDropHandlers({zone, onFile, input, acceptExts=['.csv']}){
+  function setDropHandlers(zone, onFile) {
     if(!zone) return;
     let dragDepth = 0;
-    const isDisabled = ()=> zone.classList.contains('disabled') || zone.hasAttribute('aria-disabled');
-
-    const highlight = ()=>{ if(!isDisabled()) zone.classList.add('drag'); };
-    const unhighlight = ()=> zone.classList.remove('drag');
-
-    // Click/keyboard to open file dialog
-    const openPicker = ()=>{ if(input && !isDisabled()){ input.click(); } };
-    zone.addEventListener('click', openPicker);
-    zone.addEventListener('keydown', (e)=>{ if((e.key==='Enter'||e.key===' ') && !isDisabled()){ e.preventDefault(); openPicker(); } });
-
-    zone.addEventListener('dragenter', (e)=>{
-      if(isDisabled()) return;
-      // Only react if actual files are being dragged
-      const types = e.dataTransfer && e.dataTransfer.types ? Array.from(e.dataTransfer.types) : [];
-      if(!types.includes('Files')) return;
-      e.preventDefault();
-      dragDepth++; highlight();
-    });
-
-    zone.addEventListener('dragover', (e)=>{
-      if(isDisabled()) return;
-      e.preventDefault();
-      if(e.dataTransfer) e.dataTransfer.dropEffect='copy';
-    });
-
-    zone.addEventListener('dragleave', (e)=>{
-      if(isDisabled()) return;
-      e.preventDefault();
-      dragDepth = Math.max(0, dragDepth-1);
-      if(dragDepth===0) unhighlight();
-    });
-
-    zone.addEventListener('drop', async (e)=>{
-      if(isDisabled()) return;
-      e.preventDefault();
-      dragDepth = 0; unhighlight();
-
-      const dt = e.dataTransfer;
-      let file = null;
-
-      if (dt?.files?.length){
-        // Prefer first file that matches accepted extension
-        const wanted = dt.files.length ? Array.from(dt.files).find(f=>{
-          const lname = (f.name||'').toLowerCase();
-          return acceptExts.length===0 || acceptExts.some(ext=>lname.endsWith(ext));
-        }) : null;
-        file = wanted || dt.files[0];
-      } else if (dt?.items?.length){
-        for(const it of dt.items){
-          if(it.kind==='file'){
-            const f = it.getAsFile();
-            if(!f) continue;
-            const lname = (f.name||'').toLowerCase();
-            if(acceptExts.length===0 || acceptExts.some(ext=>lname.endsWith(ext))){ file=f; break; }
-            if(!file) file=f;
-          }
-        }
-      }
-
-      if(!file){ alert('No file found in drop. Please drop a .csv file.'); return; }
+    const isDisabled=()=> zone.classList.contains('disabled') || zone.hasAttribute('aria-disabled');
+    zone.addEventListener('dragenter', (e)=>{ if(isDisabled())return; e.preventDefault(); dragDepth++; zone.classList.add('drag'); });
+    zone.addEventListener('dragover',  (e)=>{ if(isDisabled())return; e.preventDefault(); });
+    zone.addEventListener('dragleave', (e)=>{ if(isDisabled())return; e.preventDefault(); dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0) zone.classList.remove('drag'); });
+    zone.addEventListener('drop',      (e)=>{ if(isDisabled())return; e.preventDefault(); dragDepth=0; zone.classList.remove('drag');
+      const dt=e.dataTransfer; let file=null;
+      if(dt?.files?.length) file=dt.files[0];
+      else if(dt?.items?.length){ for(const it of dt.items) if(it.kind==='file'){ file=it.getAsFile(); break; } }
+      if(!file){ alert('No file found in drop.'); return; }
       onFile(file);
     });
   }
@@ -453,8 +364,7 @@ try{
     wkContainer.appendChild(row);
   }
   function renderWorkshopGrid(n){
-    wkContainer.innerHTML="";
-    ensureHeader();
+    wkContainer.innerHTML=""; ensureHeader();
     deletedStack=[]; updateUndoState();
     for(let i=0;i<n;i++) newRow({capacity:''});
   }
@@ -497,30 +407,14 @@ try{
     deletedStack=[]; updateUndoState(); enableRunIfReady();
   };
 
-  // CSV utils
-  function splitCSV(line){
-    const out=[];
-    const regex=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g;
-    let m;
-    while((m=regex.exec(line))){ out.push(m[1]?m[1].replace(/""/g,'"'):m[2]); if(!m[3]) break; }
-    return out;
-  }
-  function parseCSV(text){
-    const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-    const rows=[];
-    for(const l of lines) rows.push(splitCSV(l).map(c=>c.trim()));
-    return rows;
-  }
-  function extractInt(str){ if(str==null) return null; const m=String(str).match(/-?\d+/); if(!m) return null; const n=parseInt(m[0],10); return Number.isFinite(n)?n:null; }
-
+  function splitCSV(line){const out=[],re=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g;let m;while(m=re.exec(line)){out.push(m[1]?m[1].replace(/""/g,'"'):m[2]);if(!m[3])break;}return out;}
+  function parseCSV(text){const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);const rows=[];for(const l of lines)rows.push(splitCSV(l).map(c=>c.trim()));return rows;}
+  function extractInt(str){if(str==null)return null;const m=String(str).match(/-?\d+/);if(!m)return null;const n=parseInt(m[0],10);return Number.isFinite(n)?n:null;}
   function detectWorkshopColumns(rows){
     if(!rows.length) return {wIdx:0,iIdx:1,cIdx:null,rIdx:null,startIdx:0};
     const hdr=rows[0].map(c=>c.toLowerCase());
     const findIdx=(rxs)=>hdr.findIndex(h=>rxs.some(rx=>rx.test(h)));
-    let wIdx=findIdx([/workshop/]),
-        iIdx=findIdx([/instructor/]),
-        cIdx=findIdx([/capacit/,/^cap$/,/(max|seats|size)/]),
-        rIdx=findIdx([/room\s*#?/,/room number/,/^room$/,/(location|^rm$|rm\.)/]);
+    let wIdx=findIdx([/workshop/]), iIdx=findIdx([/instructor/]), cIdx=findIdx([/capacit/,/^cap$/,/(max|seats|size)/]), rIdx=findIdx([/room\s*#?/,/room number/,/^room$/,/(location|^rm$|rm\.)/]);
     let startIdx=0;
     if(wIdx!==-1||iIdx!==-1||cIdx!==-1||rIdx!==-1){startIdx=1;
       if(wIdx===-1)wIdx=(iIdx===0?1:0);
@@ -533,8 +427,6 @@ try{
 
   async function importWorkshopsFromFile(file){
     try{
-      const name=(file?.name||'').toLowerCase();
-      if(!name.endsWith('.csv')){alert('Please use a .csv file for workshops (not .xlsx).');return;}
       const text=await file.text();
       const rows=parseCSV(text);
       if(rows.length===0){alert('No rows found');return;}
@@ -542,7 +434,8 @@ try{
       const seen=new Map();
       for(let i=startIdx;i<rows.length;i++){
         const name=normalize(rows[i][wIdx]||'');
-        const instructor=normalize(rows[i][iIdx]||''); if(!name) continue;
+        const instructor=normalize(rows[i][iIdx]||'');
+        if(!name) continue;
         let capacity='12';
         if(cIdx!=null){
           const capNum=extractInt(rows[i][cIdx]);
@@ -562,11 +455,8 @@ try{
       wkErrors.classList.add('hidden');
     }catch(e){console.error(e);alert('Could not read workshops CSV.');}
   }
-
-  // Hook up Step 1: button, picker, and DnD
   importWorkshopsBtn.onclick=()=>{ const f=workshopCsvFile.files?.[0]; if(!f){alert('Choose a workshops CSV file first');return;} importWorkshopsFromFile(f); };
-  workshopCsvFile.addEventListener('change', ()=>{ const f=workshopCsvFile.files?.[0]; if(f) importWorkshopsFromFile(f); });
-  setDropHandlers({zone: workshopDrop, onFile: importWorkshopsFromFile, input: workshopCsvFile, acceptExts:['.csv']});
+  setDropHandlers(workshopDrop, importWorkshopsFromFile);
 
   lockWorkshops.onclick=()=>{
     const names=[...document.querySelectorAll('.wkName')],
@@ -604,13 +494,9 @@ try{
 
     enableStudentsSection(true); enableRunIfReady();
   };
-  function enableStudentsSection(enable){
-    if(csvFile) csvFile.disabled=!enable;
-    studentDrop?.classList.toggle('disabled',!enable);
-    // When we enable the dropzone, also set tabindex so it can be clicked
-    if(enable){ studentDrop.setAttribute('tabindex','0'); } else { studentDrop.removeAttribute('tabindex'); }
-  }
+  function enableStudentsSection(enable){ if(csvFile) csvFile.disabled=!enable; studentDrop?.classList.toggle('disabled',!enable); }
 
+  // ------ Students parsing: supports (Last,First,Choice1-3) OR legacy (Student,Choice1-3)
   function buildStudents(rows){
     const list=[];
     const hdr=(rows[0]||[]).map(c=>c.toLowerCase());
@@ -620,8 +506,11 @@ try{
 
     const has = (t)=> hdr.includes(t);
     if(hdr.length && (has('student') || /student/.test(hdr[0]||''))){
-      mode='legacy'; startIdx=1; idx={ student:0, c1:1, c2:2, c3:3 };
+      mode='legacy';
+      startIdx=1;
+      idx={ student:0, c1:1, c2:2, c3:3 };
     }else if(hdr.length){
+      // preferred header
       if(hdr[0]!=='last' || hdr[1]!=='first') startIdx=0; else startIdx=1;
     }
 
@@ -629,41 +518,24 @@ try{
       const r=rows[i];
       let last='', first='', picks=[];
       if(mode==='legacy'){
-        const label = normalize(r[idx.student]||''); if(!label) continue;
+        const label = normalize(r[idx.student]||'');
+        if(!label) continue;
+        // Try split "Last, First" if present
         const m = label.match(/^\s*([^,]+)\s*,\s*(.+)\s*$/);
-        if(m){ last=normalize(m[1]); first=normalize(m[2]); } else { last=label; first=''; }
+        if(m){ last=normalize(m[1]); first=normalize(m[2]); }
+        else { last=label; first=''; }
         picks=[normalize(r[idx.c1]||''), normalize(r[idx.c2]||''), normalize(r[idx.c3]||'')];
       }else{
-        last=normalize(r[idx.last]||r[0]||''); first=normalize(r[idx.first]||r[1]||'');
+        last=normalize(r[idx.last]||r[0]||'');
+        first=normalize(r[idx.first]||r[1]||'');
         picks=[normalize(r[idx.c1]||r[2]||''), normalize(r[idx.c2]||r[3]||''), normalize(r[idx.c3]||r[4]||'')];
         if(!last && !first) continue;
       }
       const label = last ? (first ? `${last}, ${first}` : last) : first;
       const id = label + '##' + i;
-      list.push({ id, last, first, label, preferences:[picks[0]||'',picks[1]||'',picks[2]||''] });
+      list.push({ id, last, first, label, preferences:[picks[0]||'', picks[1]||'', picks[2]||''] });
     }
     return list;
-  }
-
-  function validWorkshopKeySet(){
-    const set=new Set();
-    if(workshopList.length){
-      for(const w of workshopList) set.add(key(w.name));
-    }else{
-      document.querySelectorAll('.wkName').forEach(inp=>{ const n=normalize(inp.value); if(n) set.add(key(n)); });
-    }
-    return set;
-  }
-
-  function detectStudentIssues(s){
-    const [c1,c2,c3]=s.preferences.map(normalize);
-    const issues=[];
-    if(c1 && c1===c2 && c1===c3) issues.push('All three choices are identical');
-    if(!c1 || !c2 || !c3) issues.push('Missing one or more choices');
-    const valid=validWorkshopKeySet();
-    const invalids = [c1,c2,c3].filter(v=>v && !valid.has(key(v)));
-    if(invalids.length>0) issues.push('Invalid workshop name(s)');
-    return issues;
   }
 
   async function importStudentsFromFile(file){
@@ -676,16 +548,11 @@ try{
       if(!rows.length){alert('No rows found in CSV.');return;}
       students=buildStudents(rows);
       if(students.length===0){alert('No student records detected.');return;}
-
-      students.forEach(s=>{ s._issues = detectStudentIssues(s); });
-
       renderStudentsPreview(); enableRunIfReady();
     }catch(err){console.error(err);alert('Could not read student CSV.');}
   }
-
-  // Hook up Step 2: picker and DnD (enabled only after lock)
   csvFile?.addEventListener('change',()=>{const f=csvFile.files?.[0];if(f)importStudentsFromFile(f);});
-  setDropHandlers({zone: studentDrop, onFile: importStudentsFromFile, input: csvFile, acceptExts:['.csv']});
+  setDropHandlers(studentDrop, importStudentsFromFile);
 
   function renderStudentsPreview(){
     if(students.length===0){studentsPreview.classList.add('hidden');return;}
@@ -695,15 +562,11 @@ try{
     for(const s of sorted){
       const [c1,c2,c3]=s.preferences;
       const tr=document.createElement('tr');
-      const issues = s._issues || [];
-      if(issues.length) tr.classList.add('row-issue');
-      const badge = issues.length ? `<span class="issue-badge" title="${issues.join(' • ')}">⚠</span>` : '';
-      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td><td>${badge}</td>`;
+      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td>`;
       studentsTableBody.appendChild(tr);
     }
   }
 
-  // Assignment
   function hash32(str){
     let h=2166136261>>>0;
     for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=(h>>>0)*16777619>>>0;}
@@ -798,6 +661,7 @@ try{
 
     const roomByName = new Map(workshopList.map(w => [w.name, w.room || '']));
 
+    // SUMMARY
     balanceTableBody.innerHTML='';
     const wsSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
     wsSorted.forEach(w=>{
@@ -807,6 +671,7 @@ try{
       balanceTableBody.appendChild(tr);
     });
 
+    // STUDENT ASSIGNMENTS (with Last, First)
     studentTableBody.innerHTML='';
     const stSorted=students.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const s of stSorted){
@@ -817,34 +682,19 @@ try{
       studentTableBody.appendChild(tr);
     }
 
-    const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
-    for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
-
+    // ROSTERS (names as "Last, First" comma-separated)
+    const roster=new Map(); workshopList.forEach(w=>roster.set(w.name,[]));
+    for(const s of students){const a=assignMap.get(s.id); if(a) roster.get(a).push(`${s.last}${s.first?`, ${s.first}`:''}`);}
     rosterTableBody.innerHTML='';
-    const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
+    const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
     roSorted.forEach(w=>{
-      const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
-
-      const title=document.createElement('tr');
-      title.className='roster-title';
-      const td=document.createElement('td');
-      td.colSpan=4;
-      td.innerHTML = `<span class="ws-name">${w.name}</span> – <span class="instructor">${w.instructor}</span>${w.room?`, <span class="room">${w.room}</span>`:''} <span class="count">Total assigned: ${list.length}</span>`;
-      title.appendChild(td);
-      rosterTableBody.appendChild(title);
-
-      list.forEach(s=>{
-        const r=document.createElement('tr');
-        r.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td colspan="2"></td>`;
-        rosterTableBody.appendChild(r);
-      });
-
-      const sp=document.createElement('tr');
-      sp.className='roster-spacer';
-      sp.innerHTML=`<td colspan="4"></td>`;
-      rosterTableBody.appendChild(sp);
+      const list=(roster.get(w.name)||[]).slice().sort((a,b)=>a.localeCompare(b));
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${w.instructor}</td><td>${w.name}</td><td>${list.length}</td><td>${list.join(', ')}</td><td>${w.room||''}</td>`;
+      rosterTableBody.appendChild(tr);
     });
 
+    // UNPLACED
     unplacedTableBody.innerHTML='';
     const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const u of unSorted){
@@ -854,12 +704,11 @@ try{
     }
   }
 
-  // Exports
   function toCSVFromTable(tableId) {
     const t = document.getElementById(tableId);
     if (!t) return '';
     const rows = [...t.querySelectorAll('tr')];
-    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const esc = v => `"${String(v).replace(/"/g, '""')}"`;
     return rows.map(r => [...r.children].map(c => esc(c.innerText || c.textContent || '')).join(',')).join('\r\n');
   }
   function downloadCSV(csv, name) {
@@ -869,42 +718,7 @@ try{
     URL.revokeObjectURL(url);
   }
 
-  if (printStudentsBtn) {
-    printStudentsBtn.onclick = () => {
-      const table = document.getElementById('studentsTable');
-      const html = paginateByHeight({tableEl: table, label: 'Students and choices'});
-      exportToPDF('Students (Choices)', html);
-    };
-    exportStudentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentsTable'), 'students.csv');
-  }
-  printSummaryBtn.onclick = () => {
-    const table = document.getElementById('balanceTable');
-    const html = paginateByHeight({tableEl: table,label: 'Workshop capacities & assignments',extraTableClass: 'summary-table'});
-    exportToPDF('Summary', html);
-  };
-  exportSummaryCsvBtn.onclick = () => downloadCSV(toCSVFromTable('balanceTable'), 'summary.csv');
-
-  printAssignmentsBtn.onclick = () => {
-    const table = document.getElementById('studentTable');
-    const html = paginateByHeight({tableEl: table, label: 'Assignments'});
-    exportToPDF('Student Assignments', html);
-  };
-  exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
-
-  printRostersBtn.onclick = () => {
-    const table = document.getElementById('rosterTable');
-    const html = paginateByHeight({tableEl: table, label: 'Workshop rosters'});
-    exportToPDF('Workshop Rosters', html);
-  };
-  exportRostersCsvBtn.onclick = () => downloadCSV(toCSVFromTable('rosterTable'), 'rosters.csv');
-
-  printUnplacedBtn.onclick = () => {
-    const table = document.getElementById('unplacedTable');
-    const html = paginateByHeight({tableEl: table, label: 'Unplaced'});
-    exportToPDF('Unplaced Students', html);
-  };
-  exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
-
+  // PRINT/EXPORT
   function exportToPDF(title, html) {
     const lib = window.html2pdf;
     if(!lib){ alert('PDF library did not load. Try again or check your network.'); return; }
@@ -928,7 +742,7 @@ try{
       thead { display: table-header-group; }
       .report thead th { background:#f8fafc; font-weight:600; }
       .report th, .report td {
-        border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; padding:7pt 8pt; line-height:1.25; vertical-align: top; text-align: left;
+        border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; padding:7pt 8pt; line-height:1.25; text-align: left; vertical-align: top;
       }
       .report th:last-child, .report td:last-child { border-right:0 }
       .report tr:last-child td { border-bottom:0 }
@@ -994,6 +808,56 @@ try{
     }
     pages.push(wrap.outerHTML); measHost.remove(); return pages.join('');
   }
+
+  // Buttons
+  if (printStudentsBtn) {
+    printStudentsBtn.onclick = () => {
+      const table = document.getElementById('studentsTable');
+      const html = paginateByHeight({tableEl: table, label: 'Students and choices'});
+      exportToPDF('Students (Choices)', html);
+    };
+    exportStudentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentsTable'), 'students.csv');
+  }
+  printSummaryBtn.onclick = () => {
+    const table = document.getElementById('balanceTable');
+    const html = paginateByHeight({tableEl: table,label: 'Workshop capacities & assignments',extraTableClass: 'summary-table'});
+    exportToPDF('Summary', html);
+  };
+  exportSummaryCsvBtn.onclick = () => downloadCSV(toCSVFromTable('balanceTable'), 'summary.csv');
+
+  printAssignmentsBtn.onclick = () => {
+    const table = document.getElementById('studentTable');
+    const html = paginateByHeight({tableEl: table, label: 'Assignments'});
+    exportToPDF('Student Assignments', html);
+  };
+  exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
+
+  printRostersBtn.onclick = () => {
+    const src = document.getElementById('rosterTable');
+    const head = `<tr><th>Workshop</th><th>Instructor</th><th>Assigned count</th><th>Students (Last, First)</th><th>Room #</th></tr>`;
+    const html = paginateByHeight({
+      tableEl: src, label: 'Workshop rosters', overrideHeadHTML: head,
+      transformRow: (r) => {
+        const c = r.cells;
+        return `<tr>
+          <td>${c[1]?.innerHTML ?? ''}</td>
+          <td>${c[0]?.innerHTML ?? ''}</td>
+          <td>${c[2]?.innerHTML ?? ''}</td>
+          <td>${c[3]?.innerHTML ?? ''}</td>
+          <td>${c[4]?.innerHTML ?? ''}</td>
+        </tr>`;
+      }
+    });
+    exportToPDF('Workshop Rosters', html);
+  };
+  exportRostersCsvBtn.onclick = () => downloadCSV(toCSVFromTable('rosterTable'), 'rosters.csv');
+
+  printUnplacedBtn.onclick = () => {
+    const table = document.getElementById('unplacedTable');
+    const html = paginateByHeight({tableEl: table, label: 'Unplaced'});
+    exportToPDF('Unplaced Students', html);
+  };
+  exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
 
   function setTab(which) {
     [tabSummary, tabStudents, tabRosters, tabUnplaced].forEach(t => t.classList.remove('active'));
