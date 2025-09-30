@@ -34,7 +34,7 @@ button[disabled]{opacity:.55;cursor:not-allowed}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .five{display:grid;grid-template-columns:1fr 1fr 130px 120px 36px;gap:10px;align-items:center}
 .hidden{display:none}
-.badge{font-size:12px;padding:2px 8px;border:1px solid var(--line-soft);border-radius:999px;color:var(--muted)}
+.badge{font-size:12px;padding:2px 8px;border:1px solid var(--line-soft);border-radius:999px;color:#6b7280}
 .note{color:var(--muted);font-size:12px}
 .tabs{display:flex;gap:8px;margin:8px 0 0}
 .tab{padding:8px 12px;border:1px solid var(--line-soft);border-bottom:0;border-radius:10px 10px 0 0;background:#f8fafc;cursor:pointer}
@@ -82,7 +82,7 @@ table.report{
 .issue-badge{ font-size:11px; padding:2px 6px; border-radius:999px; background:#FEF3C7; border:1px solid #FDE68A; color:#92400E; }
 .issue-legend{ color:#6b7280; font-size:12px; margin-top:6px }
 
-/* Document-style rosters (no table) */
+/* Document-style rosters */
 #rosterDoc{ display:flex; flex-direction:column; gap:12px; }
 .roster-section{
   border:1px solid var(--line);
@@ -155,7 +155,7 @@ table.report{
     </div>
     <div class="two" style="margin-top:10px">
       <div>
-        <label class="small">Upload Workshops CSV (Workshop, Instructor, [Capacity], [Room])</label>
+        <label class="small">Upload Workshops CSV (Instructor, Workshop, Room, Capacity)</label>
         <input id="workshopCsvFile" type="file" accept=".csv">
       </div>
       <div id="workshopDrop" class="dropzone" tabindex="0" role="button" aria-label="Drop workshops CSV here or click to browse">Drag &amp; drop Workshops CSV here</div>
@@ -171,10 +171,10 @@ table.report{
     </fieldset>
     <div id="wkErrors" class="helper hidden"></div>
     <div class="row" style="justify-content:space-between;margin-top:8px">
-      <div class="locknote hidden" id="lockNote">Workshops are locked. Click “Reset all” in Step 3 to start over.</div>
+      <div class="locknote hidden" id="lockNote">Workshops are locked. Click Reset all in Step 3 to start over.</div>
       <button id="lockWorkshops" class="primary">Lock workshops and continue</button>
     </div>
-    <div class="note" style="margin-top:6px">Capacity &amp; Room import from CSV if present. Capacity defaults to 12 if blank.</div>
+    <div class="note" style="margin-top:6px">Capacity and Room import from CSV if present. Capacity defaults to 12 if blank.</div>
   </div>
 
   <!-- STEP 2 -->
@@ -184,8 +184,8 @@ table.report{
     <div class="two">
       <div>
         <label class="small">
-          Upload CSV with columns: <b>Last</b>, <b>First</b>, <b>Choice1</b>, <b>Choice2</b>, <b>Choice3</b><br/>
-          (Also supports legacy: <i>Student</i>, <i>Choice1</i>, <i>Choice2</i>, <i>Choice3</i>)
+          Upload CSV with columns: Last, First, Choice1, Choice2, Choice3
+          <br>(Also supports legacy Student, Choice1, Choice2, Choice3)
         </label>
         <input id="csvFile" type="file" accept=".csv" disabled>
       </div>
@@ -233,16 +233,16 @@ table.report{
     <div class="panel">
       <div id="panelSummary">
         <div class="kv" style="display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:8px">
-          <div><b>Total students:</b> <span id="kvStudents"></span></div>
-          <div><b>Total workshops:</b> <span id="kvWorkshops"></span></div>
-          <div><b>Total capacity:</b> <span id="kvCapacity"></span></div>
-          <div><b>Unplaced:</b> <span id="kvUnplaced"></span></div>
+          <div>Total students: <span id="kvStudents"></span></div>
+          <div>Total workshops: <span id="kvWorkshops"></span></div>
+          <div>Total capacity: <span id="kvCapacity"></span></div>
+          <div>Unplaced: <span id="kvUnplaced"></span></div>
         </div>
         <table id="balanceTable" class="report">
           <colgroup>
             <col style="width:28%"><col style="width:34%"><col style="width:12%"><col style="width:12%"><col style="width:14%">
           </colgroup>
-          <thead><tr><th>Instructor</th><th>Workshop</th><th>Capacity</th><th>Assigned</th><th>Room #</th></tr></thead>
+          <thead><tr><th>Instructor</th><th>Workshop</th><th>Capacity</th><th>Assigned</th><th>Room</th></tr></thead>
           <tbody></tbody>
         </table>
         <div class="printbar">
@@ -254,7 +254,7 @@ table.report{
       <div id="panelStudents" class="hidden">
         <div class="scrollbox">
           <table id="studentTable" class="report">
-            <thead><tr><th>Last Name</th><th>First Name</th><th>Assigned workshop</th><th>Room #</th></tr></thead>
+            <thead><tr><th>Last Name</th><th>First Name</th><th>Assigned workshop</th><th>Room</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -461,7 +461,7 @@ try{
       const header=document.createElement('div');
       header.className='wkHeader';
       header.innerHTML=`<div class="five" style="font-size:12px;color:#6b7280;margin-bottom:6px">
-        <div>Instructor</div><div>Workshop name</div><div>Capacity</div><div>Room # (optional)</div><div></div></div>`;
+        <div>Instructor</div><div>Workshop name</div><div>Capacity</div><div>Room (optional)</div><div></div></div>`;
       wkContainer.appendChild(header);
     }
   }
@@ -536,45 +536,73 @@ try{
   }
   function extractInt(str){ if(str==null) return null; const m=String(str).match(/-?\d+/); if(!m) return null; const n=parseInt(m[0],10); return Number.isFinite(n)?n:null; }
 
+  // Detect columns for Workshops CSV (supports headerless: [Instructor, Workshop, Room, Capacity])
   function detectWorkshopColumns(rows){
     if(!rows.length) return {wIdx:0,iIdx:1,cIdx:null,rIdx:null,startIdx:0};
-    const hdr=rows[0].map(c=>c.toLowerCase());
-    const findIdx=(rxs)=>hdr.findIndex(h=>rxs.some(rx=>rx.test(h)));
-    let wIdx=findIdx([/workshop/]),
-        iIdx=findIdx([/instructor/]),
-        cIdx=findIdx([/capacit/,/^cap$/,/(max|seats|size)/]),
-        rIdx=findIdx([/room\s*#?/,/room number/,/^room$/,/(location|^rm$|rm\.)/]);
-    let startIdx=0;
-    if(wIdx!==-1||iIdx!==-1||cIdx!==-1||rIdx!==-1){startIdx=1;
-      if(wIdx===-1)wIdx=(iIdx===0?1:0);
-      if(iIdx===-1)iIdx=(wIdx===0?1:0);
-      if(cIdx===-1)cIdx=null;
-      if(rIdx===-1)rIdx=null;}
-    else {wIdx=0;iIdx=1;cIdx=rows[0].length>2?2:null;rIdx=rows[0].length>3?3:null;startIdx=0;}
-    return {wIdx,iIdx,cIdx,rIdx,startIdx};
+
+    const hdr = rows[0].map(c => String(c ?? '').toLowerCase());
+    const hasHeaderToken = (h)=> /(^|\b)(workshop|instructor|capacit|room|location|rm)(\b|$)/.test(h);
+
+    // Header present → map by names
+    if (hdr.some(hasHeaderToken)) {
+      const findIdx=(rxs)=> hdr.findIndex(h=>rxs.some(rx=>rx.test(h)));
+      let wIdx=findIdx([/workshop/]),
+          iIdx=findIdx([/instructor/]),
+          cIdx=findIdx([/capacit/,/^cap$/,/(max|seats|size)/]),
+          rIdx=findIdx([/room\s*#?/,/room number/,/^room$/,/(location|^rm$|rm\.)/]);
+      if(wIdx===-1) wIdx=(iIdx===0?1:0);
+      if(iIdx===-1) iIdx=(wIdx===0?1:0);
+      if(cIdx===-1) cIdx=null;
+      if(rIdx===-1) rIdx=null;
+      return {wIdx,iIdx,cIdx,rIdx,startIdx:1};
+    }
+
+    // No header → assume [Instructor, Workshop, Room, Capacity]
+    const first = rows[0] || [];
+    const cols = first.length;
+    const iIdx = cols > 0 ? 0 : null;
+    const wIdx = cols > 1 ? 1 : null;
+    const rIdx = cols > 2 ? 2 : null;
+    const cIdx = cols > 3 ? 3 : null;
+    return { wIdx, iIdx, cIdx, rIdx, startIdx:0 };
   }
 
   async function importWorkshopsFromFile(file){
     try{
-      const name=(file?.name||'').toLowerCase();
-      if(!name.endsWith('.csv')){alert('Please use a .csv file for workshops (not .xlsx).');return;}
+      const fname=(file?.name||'').toLowerCase();
+      if(!fname.endsWith('.csv')){alert('Please use a .csv file for workshops (not .xlsx).');return;}
       const text=await file.text();
       const rows=parseCSV(text);
+      // Strip possible BOM in first cell (Excel sometimes adds it)
+      if(rows.length && rows[0].length){ rows[0][0]=String(rows[0][0]).replace(/^\uFEFF/,''); }
       if(rows.length===0){alert('No rows found');return;}
+
       const {wIdx,iIdx,cIdx,rIdx,startIdx}=detectWorkshopColumns(rows);
       const seen=new Map();
+
       for(let i=startIdx;i<rows.length;i++){
-        const name=normalize(rows[i][wIdx]||'');
-        const instructor=normalize(rows[i][iIdx]||''); if(!name) continue;
-        let capacity='12';
-        if(cIdx!=null){
-          const capNum=extractInt(rows[i][cIdx]);
-          if(Number.isFinite(capNum)&&capNum>0) capacity=String(capNum);
-        }
-        const room=rIdx!=null?normalize(rows[i][rIdx]||''):'';
-        const k=key(name);
+        const row = rows[i] || [];
+        const rawW = row[wIdx] ?? '';
+        const rawI = row[iIdx] ?? '';
+        const rawC = cIdx!=null ? row[cIdx] : '';
+        const rawR = rIdx!=null ? row[rIdx] : '';
+
+        const name = normalize(rawW);
+        const instructor = normalize(rawI);
+        const room = normalize(rawR || '');
+        const capNum = extractInt(rawC);
+        let capacity = '12';
+        if(Number.isFinite(capNum) && capNum > 0) capacity = String(capNum);
+
+        // Skip empty lines; require a workshop title
+        if (!name && !instructor) continue;
+        if (!name) continue;
+
+        // De-dupe by title+instructor
+        const k = key(name) + '|' + key(instructor);
         if(!seen.has(k)) seen.set(k,{name,instructor,capacity,room});
       }
+
       const unique=[...seen.values()];
       if(unique.length===0){alert('No workshop names found');return;}
       unique.sort((a,b)=>a.name.localeCompare(b.name) || a.instructor.localeCompare(b.instructor));
@@ -610,7 +638,7 @@ try{
       if(!name){names[i].classList.add('invalid');hasError=true;}
       if(!ins){instr[i].classList.add('invalid');hasError=true;}
       if(!Number.isFinite(cap)||cap<1){cap=12;}
-      const k=key(name);
+      const k=key(name)+'|'+key(ins);
       if(seen.has(k)){names[i].classList.add('invalid');hasError=true;}
       seen.add(k);
       workshopList.push({room,name,instructor:ins,capacity:cap});
@@ -666,7 +694,6 @@ try{
     return list;
   }
 
-  // Step 2 catcher helpers
   function validWorkshopKeySet(){
     const set=new Set();
     for(const w of workshopList) set.add(key(w.name));
@@ -696,7 +723,6 @@ try{
       students=buildStudents(rows);
       if(students.length===0){alert('No student records detected.');return;}
 
-      // compute issues only for Step 2 preview
       students.forEach(s=>{ s._issues = detectStudentIssues(s); });
 
       renderStudentsPreview(); enableRunIfReady();
@@ -806,7 +832,6 @@ try{
     if(students.length===0){alert('Load students first');return;}
     setRunSeed();
     const {fill}=assignStudents();
-    // clear preview flags so nothing carries into reports
     students.forEach(s=>{ delete s._issues; });
     renderReport(fill);
   };
@@ -842,7 +867,7 @@ try{
       studentTableBody.appendChild(tr);
     }
 
-    // Workshop rosters (document layout)
+    // Workshop rosters
     const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
     for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
 
@@ -924,7 +949,7 @@ try{
   };
   exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
 
-  // Roster PDF/CSV (document layout)
+  // Roster PDF/CSV
   printRostersBtn.onclick = () => {
     const html = buildRosterHTMLForPDF();
     exportToPDF('Workshop Rosters', html);
@@ -999,14 +1024,6 @@ try{
       .summary-table th:nth-child(3), .summary-table td:nth-child(3),
       .summary-table th:nth-child(4), .summary-table td:nth-child(4){ text-align:right; font-variant-numeric:tabular-nums; }
       .summary-table th:nth-child(5), .summary-table td:nth-child(5){ white-space:nowrap; }
-
-      .roster-section{
-        border:1px solid #d1d5db; border-radius:10px; background:#fff; margin:0 0 10pt 0;
-      }
-      .roster-header{ background:#f3f4f6; font-weight:800; text-align:center; font-size:12pt; padding:8pt 9pt; }
-      .name-grid{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:6pt 24pt; padding:6pt 9pt 9pt 9pt; }
-      .name{ padding:2pt 0; border-bottom:1px solid #e5e7eb; }
-      .name:last-child{ border-bottom:0 }
     `;
 
     const container = document.createElement('div');
