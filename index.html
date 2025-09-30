@@ -97,14 +97,33 @@ table.report{
 .roster-header .instructor{ font-weight:800 }
 .roster-header .room{ color:#374151 }
 .roster-header .count{ font-weight:800; white-space:nowrap }
+
+/* Roster names in clean columns: 3 desktop → 2 tablet → 1 phone */
 .name-grid{
   padding:8px 10px 12px 10px;
   display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap:6px 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); /* force 3 columns */
+  gap:6px 24px; /* row gap, column gap */
 }
-.name{ padding:2px 0; border-bottom:1px solid var(--line-soft); }
+@media (max-width: 900px){
+  .name-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px){
+  .name-grid{ grid-template-columns: 1fr; }
+}
+
+.name{
+  padding:2px 0;
+  border-bottom:1px solid var(--line-soft);
+  white-space:nowrap;           /* keep "Last, First" on one line */
+  overflow:hidden;              /* prevent overflow */
+  text-overflow:ellipsis;       /* add … if too long */
+}
 .name:last-child{ border-bottom:0 }
+
+/* Fallback if JS dies early */
+.nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
+
 
 /* Fallback if JS dies early */
 .nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
