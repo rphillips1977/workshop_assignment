@@ -54,6 +54,7 @@ button[disabled]{opacity:.55;cursor:not-allowed}
   border-radius:12px;
   background:#fff;
 }
+
 /* tables */
 table{width:100%}
 table.report{
@@ -77,7 +78,7 @@ table.report{
 #balanceTable th:nth-child(5),#balanceTable td:nth-child(5){white-space:nowrap}
 
 /* Rosters */
-#rosterTable thead{ display:none; }
+#rosterTable thead{ display:none; } /* hide on-screen; show proper header in PDFs */
 .roster-title td{
   background:#f3f4f6;
   font-weight:800;
@@ -87,7 +88,7 @@ table.report{
 .roster-title .ws-name{font-weight:900}
 .roster-title .instructor{font-weight:800}
 .roster-title .room{color:#374151}
-.roster-title .count{float:right; font-weight:800}
+.roster-title .count{font-weight:800}
 .roster-spacer td{background:#fff;height:8px;border:0}
 
 /* Fallback if JS dies early */
@@ -233,7 +234,7 @@ table.report{
         <div class="scrollbox">
           <table id="rosterTable" class="report">
             <thead>
-              <tr><th>Last Name</th><th>First Name</th></tr>
+              <tr><th>Students</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -273,13 +274,18 @@ function showInitError(msg){
 }
 
 try{
-  ['dragenter','dragover'].forEach(evt=>{
+  // Global DnD: allow file drops anywhere, but don't swallow drops handled by zones
+  ['dragenter','dragover','drop'].forEach(evt=>{
     document.addEventListener(evt, e=>{
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+      if (e.target && e.target.closest && e.target.closest('.dropzone')) return;
+      if (evt !== 'drop') {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'none';
+      } else {
+        e.preventDefault();
+      }
     }, {passive:false});
   });
-  document.addEventListener('drop', e=>{ e.preventDefault(); }, {passive:false});
 
   const numWorkshops=document.getElementById('numWorkshops');
   const buildWorkshopRows=document.getElementById('buildWorkshopRows');
@@ -355,63 +361,83 @@ try{
   const makeSeed=()=>{ try{const a=new Uint32Array(2);crypto.getRandomValues(a);return a[0]+'-'+a[1];}catch(_){return Date.now()+'-'+Math.floor(Math.random()*1e9)}};
   const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); console.log('Draw seed:',runSeed); };
 
+  // Robust drop handlers for CSV zones (Step 1 & Step 2)
   function setDropHandlers({zone, onFile, input, acceptExts=['.csv']}){
     if(!zone) return;
     let dragDepth = 0;
+
     const isDisabled = ()=> zone.classList.contains('disabled') || zone.hasAttribute('aria-disabled');
-    const highlight = ()=>{ if(!isDisabled()) zone.classList.add('drag'); };
-    const unhighlight = ()=> zone.classList.remove('drag');
+    const highlight  = ()=>{ if(!isDisabled()) zone.classList.add('drag'); };
+    const unhighlight= ()=> zone.classList.remove('drag');
     const openPicker = ()=>{ if(input && !isDisabled()){ input.click(); } };
+
+    // Click / keyboard to open file picker
     zone.addEventListener('click', openPicker);
-    zone.addEventListener('keydown', (e)=>{ if((e.key==='Enter'||e.key===' ') && !isDisabled()){ e.preventDefault(); openPicker(); } });
+    zone.addEventListener('keydown', (e)=>{
+      if((e.key==='Enter'||e.key===' ') && !isDisabled()){ e.preventDefault(); openPicker(); }
+    });
+
+    const hasFilesType = (dt)=> {
+      try{
+        const types = dt && dt.types ? Array.from(dt.types) : [];
+        return types.length===0 || types.includes('Files') || types.includes('public.file-url') || types.includes('text/uri-list');
+      }catch{ return true; }
+    };
+
+    const pickFileFromDataTransfer = (dt)=>{
+      if (dt?.files && dt.files.length) return dt.files[0];
+      if (dt?.items && dt.items.length){
+        for (const it of dt.items){
+          if (it.kind === 'file'){
+            const f = it.getAsFile?.();
+            if (f) return f;
+          }
+        }
+      }
+      return null;
+    };
+
+    const isAccepted = (file)=>{
+      if (!file) return false;
+      const lname = (file.name||'').toLowerCase();
+      return acceptExts.length===0 || acceptExts.some(ext => lname.endsWith(ext));
+    };
 
     zone.addEventListener('dragenter', (e)=>{
       if(isDisabled()) return;
-      const types = e.dataTransfer && e.dataTransfer.types ? Array.from(e.dataTransfer.types) : [];
-      if(!types.includes('Files')) return;
+      if(!hasFilesType(e.dataTransfer)) return;
       e.preventDefault();
       dragDepth++; highlight();
-    });
+    }, {passive:false});
 
     zone.addEventListener('dragover', (e)=>{
       if(isDisabled()) return;
+      if(!hasFilesType(e.dataTransfer)) return;
       e.preventDefault();
-      if(e.dataTransfer) e.dataTransfer.dropEffect='copy';
-    });
+      if (e.dataTransfer) e.dataTransfer.dropEffect='copy';
+    }, {passive:false});
 
     zone.addEventListener('dragleave', (e)=>{
       if(isDisabled()) return;
       e.preventDefault();
       dragDepth = Math.max(0, dragDepth-1);
       if(dragDepth===0) unhighlight();
-    });
+    }, {passive:false});
 
     zone.addEventListener('drop', async (e)=>{
       if(isDisabled()) return;
       e.preventDefault();
       dragDepth = 0; unhighlight();
-      const dt = e.dataTransfer;
-      let file = null;
-      if (dt?.files?.length){
-        const wanted = dt.files.length ? Array.from(dt.files).find(f=>{
-          const lname = (f.name||'').toLowerCase();
-          return acceptExts.length===0 || acceptExts.some(ext=>lname.endsWith(ext));
-        }) : null;
-        file = wanted || dt.files[0];
-      } else if (dt?.items?.length){
-        for(const it of dt.items){
-          if(it.kind==='file'){
-            const f = it.getAsFile();
-            if(!f) continue;
-            const lname = (f.name||'').toLowerCase();
-            if(acceptExts.length===0 || acceptExts.some(ext=>lname.endsWith(ext))){ file=f; break; }
-            if(!file) file=f;
-          }
-        }
+
+      const file = pickFileFromDataTransfer(e.dataTransfer);
+      if(!file){ alert('No file found in drop. Please drop a CSV file.'); return; }
+      if(!isAccepted(file)){
+        const wanted = acceptExts.length ? acceptExts.join(', ') : 'a supported';
+        alert(`Please drop ${wanted} file.`);
+        return;
       }
-      if(!file){ alert('No file found in drop. Please drop a .csv file.'); return; }
       onFile(file);
-    });
+    }, {passive:false});
   }
 
   function setWorkshopControlsEnabled(enabled){
@@ -787,7 +813,7 @@ try{
       studentTableBody.appendChild(tr);
     }
 
-    // Workshop rosters
+    // Workshop rosters: merged title + single "Last, First" column, workshops A–Z
     const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
     for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
 
@@ -796,23 +822,31 @@ try{
     roSorted.forEach(w=>{
       const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
 
+      // merged and centered header row
       const title=document.createElement('tr');
       title.className='roster-title';
       const td=document.createElement('td');
-      td.colSpan=2;
-      td.innerHTML = `<span class="ws-name">${w.name}</span> – <span class="instructor">${w.instructor}</span>${w.room?`, <span class="room">${w.room}</span>`:''} <span class="count">Total assigned: ${list.length}</span>`;
+      td.colSpan=1;
+      td.style.textAlign='center';
+      td.innerHTML = `
+        <span class="ws-name">${w.name}</span>
+        &nbsp;–&nbsp;<span class="instructor">${w.instructor}</span>
+        ${w.room?`&nbsp;&nbsp;<span class="room">${w.room}</span>`:''}
+        &nbsp;&nbsp;<span class="count">Assigned students: ${list.length}</span>
+      `;
       title.appendChild(td);
       rosterTableBody.appendChild(title);
 
+      // one-column list: "Last, First"
       list.forEach(s=>{
         const r=document.createElement('tr');
-        r.innerHTML=`<td>${s.last}</td><td>${s.first}</td>`;
+        r.innerHTML=`<td>${s.last}, ${s.first}</td>`;
         rosterTableBody.appendChild(r);
       });
 
       const sp=document.createElement('tr');
       sp.className='roster-spacer';
-      sp.innerHTML=`<td colspan="2"></td>`;
+      sp.innerHTML=`<td></td>`;
       rosterTableBody.appendChild(sp);
     });
 
@@ -865,7 +899,7 @@ try{
 
   printRostersBtn.onclick = () => {
     const table = document.getElementById('rosterTable');
-    const head = '<tr><th>Last Name</th><th>First Name</th></tr>';
+    const head = '<tr><th>Students</th></tr>';
     const html = paginateByHeight({tableEl: table, label: 'Workshop rosters', overrideHeadHTML: head});
     exportToPDF('Workshop Rosters', html);
   };
