@@ -102,7 +102,7 @@ table.report{
 .name-grid{
   padding:8px 10px 12px 10px;
   display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)); /* force 3 columns */
+  grid-template-columns: repeat(3, minmax(0, 1fr)); /* 3 columns */
   gap:6px 24px; /* row gap, column gap */
 }
 @media (max-width: 900px){
@@ -115,9 +115,9 @@ table.report{
 .name{
   padding:2px 0;
   border-bottom:1px solid var(--line-soft);
-  white-space:nowrap;           /* keep "Last, First" on one line */
-  overflow:hidden;              /* prevent overflow */
-  text-overflow:ellipsis;       /* add … if too long */
+  white-space:nowrap;      /* keep "Last, First" on one line */
+  overflow:hidden;
+  text-overflow:ellipsis;  /* … if too long */
 }
 .name:last-child{ border-bottom:0 }
 
