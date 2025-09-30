@@ -46,7 +46,7 @@ button[disabled]{opacity:.55;cursor:not-allowed}
 .dropzone.drag{border-color:var(--lsu-purple);background:#faf5ff}
 .dropzone.disabled{opacity:.6;pointer-events:none}
 
-/* scrollbox for tables/rosters */
+/* generic scrollbox */
 .scrollbox{
   max-height:420px;
   overflow:auto;
@@ -77,6 +77,11 @@ table.report{
 #balanceTable th:nth-child(4),#balanceTable td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
 #balanceTable th:nth-child(5),#balanceTable td:nth-child(5){white-space:nowrap}
 
+/* Step 2 issue highlighting */
+.row-issue td{ background:#FFF7ED; }
+.issue-badge{ font-size:11px; padding:2px 6px; border-radius:999px; background:#FEF3C7; border:1px solid #FDE68A; color:#92400E; }
+.issue-legend{ color:#6b7280; font-size:12px; margin-top:6px }
+
 /* Document-style rosters (no table) */
 #rosterDoc{ display:flex; flex-direction:column; gap:12px; }
 .roster-section{
@@ -98,32 +103,24 @@ table.report{
 .roster-header .room{ color:#374151 }
 .roster-header .count{ font-weight:800; white-space:nowrap }
 
-/* Roster names in clean columns: 3 desktop → 2 tablet → 1 phone */
+/* 3 columns desktop → 2 tablet → 1 phone */
 .name-grid{
   padding:8px 10px 12px 10px;
   display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)); /* 3 columns */
-  gap:6px 24px; /* row gap, column gap */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:6px 24px;
 }
-@media (max-width: 900px){
-  .name-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 560px){
-  .name-grid{ grid-template-columns: 1fr; }
-}
+@media (max-width: 900px){ .name-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px){ .name-grid{ grid-template-columns: 1fr; } }
 
 .name{
   padding:2px 0;
   border-bottom:1px solid var(--line-soft);
-  white-space:nowrap;      /* keep "Last, First" on one line */
+  white-space:nowrap;
   overflow:hidden;
-  text-overflow:ellipsis;  /* … if too long */
+  text-overflow:ellipsis;
 }
 .name:last-child{ border-bottom:0 }
-
-/* Fallback if JS dies early */
-.nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
-
 
 /* Fallback if JS dies early */
 .nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
@@ -177,7 +174,7 @@ table.report{
       <div class="locknote hidden" id="lockNote">Workshops are locked. Click “Reset all” in Step 3 to start over.</div>
       <button id="lockWorkshops" class="primary">Lock workshops and continue</button>
     </div>
-    <div class="note" style="margin-top:6px">Capacity and Room import from CSV if present. Capacity defaults to 12 if blank.</div>
+    <div class="note" style="margin-top:6px">Capacity &amp; Room import from CSV if present. Capacity defaults to 12 if blank.</div>
   </div>
 
   <!-- STEP 2 -->
@@ -200,10 +197,13 @@ table.report{
       <div class="scrollbox">
         <table id="studentsTable" class="report">
           <thead>
-            <tr><th>Last Name</th><th>First Name</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th></tr>
+            <tr><th>Last Name</th><th>First Name</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th><th>Issues</th></tr>
           </thead>
           <tbody></tbody>
         </table>
+      </div>
+      <div id="issueLegend" class="issue-legend hidden">
+        <span class="issue-badge">⚠</span> indicates: missing choice, duplicate choice, or an unknown workshop name.
       </div>
       <div class="printbar" style="margin-top:8px">
         <button id="printStudents" class="ghost">Export students (PDF)</button>
@@ -303,7 +303,7 @@ function showInitError(msg){
 }
 
 try{
-  // Global DnD: allow file drops anywhere, but don't swallow drops handled by zones
+  // Global DnD guard
   ['dragenter','dragover','drop'].forEach(evt=>{
     document.addEventListener(evt, e=>{
       if (e.target && e.target.closest && e.target.closest('.dropzone')) return;
@@ -390,81 +390,51 @@ try{
   const makeSeed=()=>{ try{const a=new Uint32Array(2);crypto.getRandomValues(a);return a[0]+'-'+a[1];}catch(_){return Date.now()+'-'+Math.floor(Math.random()*1e9)}};
   const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); console.log('Draw seed:',runSeed); };
 
-  // Robust drop handlers for CSV zones (Step 1 & Step 2)
+  // robust drop handlers
   function setDropHandlers({zone, onFile, input, acceptExts=['.csv']}){
     if(!zone) return;
     let dragDepth = 0;
-
     const isDisabled = ()=> zone.classList.contains('disabled') || zone.hasAttribute('aria-disabled');
     const highlight  = ()=>{ if(!isDisabled()) zone.classList.add('drag'); };
     const unhighlight= ()=> zone.classList.remove('drag');
     const openPicker = ()=>{ if(input && !isDisabled()){ input.click(); } };
 
-    // Click / keyboard to open file picker
     zone.addEventListener('click', openPicker);
-    zone.addEventListener('keydown', (e)=>{
-      if((e.key==='Enter'||e.key===' ') && !isDisabled()){ e.preventDefault(); openPicker(); }
-    });
+    zone.addEventListener('keydown', (e)=>{ if((e.key==='Enter'||e.key===' ') && !isDisabled()){ e.preventDefault(); openPicker(); } });
 
     const hasFilesType = (dt)=> {
-      try{
-        const types = dt && dt.types ? Array.from(dt.types) : [];
-        return types.length===0 || types.includes('Files') || types.includes('public.file-url') || types.includes('text/uri-list');
-      }catch{ return true; }
+      try{ const types = dt && dt.types ? Array.from(dt.types) : []; return !types.length || types.includes('Files'); }
+      catch{ return true; }
     };
-
-    const pickFileFromDataTransfer = (dt)=>{
-      if (dt?.files && dt.files.length) return dt.files[0];
-      if (dt?.items && dt.items.length){
-        for (const it of dt.items){
-          if (it.kind === 'file'){
-            const f = it.getAsFile?.();
-            if (f) return f;
-          }
-        }
+    const pickFile = (dt)=>{
+      if (dt?.files?.length) return dt.files[0];
+      if (dt?.items?.length){
+        for (const it of dt.items){ if (it.kind==='file'){ const f=it.getAsFile?.(); if(f) return f; } }
       }
       return null;
     };
-
     const isAccepted = (file)=>{
-      if (!file) return false;
-      const lname = (file.name||'').toLowerCase();
-      return acceptExts.length===0 || acceptExts.some(ext => lname.endsWith(ext));
+      const lname=(file?.name||'').toLowerCase();
+      return acceptExts.length===0 || acceptExts.some(ext=>lname.endsWith(ext));
     };
 
     zone.addEventListener('dragenter', (e)=>{
-      if(isDisabled()) return;
-      if(!hasFilesType(e.dataTransfer)) return;
-      e.preventDefault();
-      dragDepth++; highlight();
+      if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return;
+      e.preventDefault(); dragDepth++; highlight();
     }, {passive:false});
-
     zone.addEventListener('dragover', (e)=>{
-      if(isDisabled()) return;
-      if(!hasFilesType(e.dataTransfer)) return;
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect='copy';
+      if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return;
+      e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='copy';
     }, {passive:false});
-
     zone.addEventListener('dragleave', (e)=>{
-      if(isDisabled()) return;
-      e.preventDefault();
-      dragDepth = Math.max(0, dragDepth-1);
-      if(dragDepth===0) unhighlight();
+      if(isDisabled()) return; e.preventDefault();
+      dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0) unhighlight();
     }, {passive:false});
-
-    zone.addEventListener('drop', async (e)=>{
-      if(isDisabled()) return;
-      e.preventDefault();
-      dragDepth = 0; unhighlight();
-
-      const file = pickFileFromDataTransfer(e.dataTransfer);
+    zone.addEventListener('drop', (e)=>{
+      if(isDisabled()) return; e.preventDefault(); dragDepth=0; unhighlight();
+      const file=pickFile(e.dataTransfer);
       if(!file){ alert('No file found in drop. Please drop a CSV file.'); return; }
-      if(!isAccepted(file)){
-        const wanted = acceptExts.length ? acceptExts.join(', ') : 'a supported';
-        alert(`Please drop ${wanted} file.`);
-        return;
-      }
+      if(!isAccepted(file)){ alert('Please drop a .csv file.'); return; }
       onFile(file);
     }, {passive:false});
   }
@@ -696,6 +666,25 @@ try{
     return list;
   }
 
+  // Step 2 catcher helpers
+  function validWorkshopKeySet(){
+    const set=new Set();
+    for(const w of workshopList) set.add(key(w.name));
+    return set;
+  }
+  function detectStudentIssues(s){
+    const [c1,c2,c3]=s.preferences.map(normalize);
+    const issues=[];
+    if ((c1 && c2 && c1===c2) || (c1 && c3 && c1===c3) || (c2 && c3 && c2===c3)) {
+      issues.push('Duplicate choice(s)');
+    }
+    if(!c1 || !c2 || !c3) issues.push('Missing one or more choices');
+    const valid=validWorkshopKeySet();
+    const bad=[c1,c2,c3].filter(v=>v && !valid.has(key(v)));
+    if(bad.length>0) issues.push('Unknown workshop name');
+    return issues;
+  }
+
   async function importStudentsFromFile(file){
     try{
       const name=(file?.name||'').toLowerCase();
@@ -706,6 +695,9 @@ try{
       if(!rows.length){alert('No rows found in CSV.');return;}
       students=buildStudents(rows);
       if(students.length===0){alert('No student records detected.');return;}
+
+      // compute issues only for Step 2 preview
+      students.forEach(s=>{ s._issues = detectStudentIssues(s); });
 
       renderStudentsPreview(); enableRunIfReady();
     }catch(err){console.error(err);alert('Could not read student CSV.');}
@@ -719,12 +711,18 @@ try{
     studentsPreview.classList.remove('hidden');
     studentsTableBody.innerHTML='';
     const sorted=students.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+    let anyIssues=false;
     for(const s of sorted){
       const [c1,c2,c3]=s.preferences;
+      const issues = s._issues || [];
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td>`;
+      if(issues.length){ tr.classList.add('row-issue'); anyIssues=true; }
+      const badge = issues.length ? `<span class="issue-badge" title="${issues.join(' • ')}">⚠</span>` : '';
+      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td><td>${badge}</td>`;
       studentsTableBody.appendChild(tr);
     }
+    const legend=document.getElementById('issueLegend');
+    if(legend) legend.classList.toggle('hidden', !anyIssues);
   }
 
   // Assignment
@@ -808,6 +806,8 @@ try{
     if(students.length===0){alert('Load students first');return;}
     setRunSeed();
     const {fill}=assignStudents();
+    // clear preview flags so nothing carries into reports
+    students.forEach(s=>{ delete s._issues; });
     renderReport(fill);
   };
   document.getElementById('resetAll').onclick=()=>location.reload();
@@ -842,7 +842,7 @@ try{
       studentTableBody.appendChild(tr);
     }
 
-    // Workshop rosters: document layout (sections), workshops A–Z
+    // Workshop rosters (document layout)
     const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
     for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
 
@@ -860,7 +860,7 @@ try{
         <span class="ws-name">${w.name}</span>
         &nbsp;–&nbsp;<span class="instructor">${w.instructor}</span>
         ${w.room?`&nbsp;&nbsp;<span class="room">${w.room}</span>`:''}
-        &nbsp;&nbsp;<span class="count">Assigned: ${list.length}</span>
+        &nbsp;&nbsp;<span class="count">Assigned students: ${list.length}</span>
       `;
       section.appendChild(header);
 
@@ -870,16 +870,14 @@ try{
         const item=document.createElement('div');
         item.className='name';
         const fullName = s.first ? `${s.last}, ${s.first}` : s.last;
-		item.textContent = fullName;
-
+        item.textContent = fullName;
         grid.appendChild(item);
       });
       section.appendChild(grid);
-
       rosterDoc.appendChild(section);
     });
 
-    // Unplaced table
+    // Unplaced
     unplacedTableBody.innerHTML='';
     const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const u of unSorted){
@@ -944,11 +942,10 @@ try{
   exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
 
   function buildRosterHTMLForPDF(){
-    // Use the already-rendered rosterDoc content; add minimal print-friendly CSS (names wrap nicely).
     return `
       <style>
         .pdf-roster .roster-section{ margin-bottom:10pt; }
-        .pdf-roster .name-grid{ grid-template-columns: repeat(auto-fit, minmax(160pt, 1fr)); }
+        .pdf-roster .name-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); gap:6pt 24pt; }
       </style>
       <div class="pdf-roster">${rosterDoc.innerHTML}</div>
     `;
@@ -965,9 +962,7 @@ try{
       if(list.length===0){
         rows.push([w.name, w.instructor, w.room||'', '0', '']);
       }else{
-        list.forEach((s,idx)=>{
-          rows.push([w.name, w.instructor, w.room||'', String(list.length), `${s.last}, ${s.first}`]);
-        });
+        list.forEach((s)=> rows.push([w.name, w.instructor, w.room||'', String(list.length), `${s.last}, ${s.first}`]));
       }
     });
     return rows.map(r=>r.map(esc).join(',')).join('\r\n');
@@ -990,7 +985,6 @@ try{
       .pdf-page{ break-inside: avoid; }
       .pdf-page + .pdf-page{ break-before: page; }
 
-      /* table exports */
       table { width:100%; }
       table.report {
         border-collapse: separate; border-spacing: 0; border: 1px solid #d1d5db; border-radius: 10px; background: #fff;
@@ -1006,12 +1000,11 @@ try{
       .summary-table th:nth-child(4), .summary-table td:nth-child(4){ text-align:right; font-variant-numeric:tabular-nums; }
       .summary-table th:nth-child(5), .summary-table td:nth-child(5){ white-space:nowrap; }
 
-      /* roster document layout */
       .roster-section{
         border:1px solid #d1d5db; border-radius:10px; background:#fff; margin:0 0 10pt 0;
       }
       .roster-header{ background:#f3f4f6; font-weight:800; text-align:center; font-size:12pt; padding:8pt 9pt; }
-      .name-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(140pt, 1fr)); gap:6pt 10pt; padding:6pt 9pt 9pt 9pt; }
+      .name-grid{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:6pt 24pt; padding:6pt 9pt 9pt 9pt; }
       .name{ padding:2pt 0; border-bottom:1px solid #e5e7eb; }
       .name:last-child{ border-bottom:0 }
     `;
