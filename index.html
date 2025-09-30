@@ -46,7 +46,7 @@ button[disabled]{opacity:.55;cursor:not-allowed}
 .dropzone.drag{border-color:var(--lsu-purple);background:#faf5ff}
 .dropzone.disabled{opacity:.6;pointer-events:none}
 
-/* scrollbox for tables */
+/* scrollbox for tables/rosters */
 .scrollbox{
   max-height:420px;
   overflow:auto;
@@ -77,19 +77,34 @@ table.report{
 #balanceTable th:nth-child(4),#balanceTable td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
 #balanceTable th:nth-child(5),#balanceTable td:nth-child(5){white-space:nowrap}
 
-/* Rosters */
-#rosterTable thead{ display:none; } /* hide on-screen; show proper header in PDFs */
-.roster-title td{
+/* Document-style rosters (no table) */
+#rosterDoc{ display:flex; flex-direction:column; gap:12px; }
+.roster-section{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 1px 0 rgba(0,0,0,.02);
+  overflow:hidden;
+}
+.roster-header{
   background:#f3f4f6;
   font-weight:800;
   text-align:center;
   font-size:16px;
+  padding:10px 12px;
 }
-.roster-title .ws-name{font-weight:900}
-.roster-title .instructor{font-weight:800}
-.roster-title .room{color:#374151}
-.roster-title .count{font-weight:800}
-.roster-spacer td{background:#fff;height:8px;border:0}
+.roster-header .ws-name{ font-weight:900 }
+.roster-header .instructor{ font-weight:800 }
+.roster-header .room{ color:#374151 }
+.roster-header .count{ font-weight:800; white-space:nowrap }
+.name-grid{
+  padding:8px 10px 12px 10px;
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap:6px 12px;
+}
+.name{ padding:2px 0; border-bottom:1px solid var(--line-soft); }
+.name:last-child{ border-bottom:0 }
 
 /* Fallback if JS dies early */
 .nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
@@ -232,12 +247,7 @@ table.report{
 
       <div id="panelRosters" class="hidden">
         <div class="scrollbox">
-          <table id="rosterTable" class="report">
-            <thead>
-              <tr><th>Students</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+          <div id="rosterDoc"></div>
         </div>
         <div class="printbar">
           <button id="printRosters" class="ghost">Export rosters (PDF)</button>
@@ -317,7 +327,7 @@ try{
   const kvUnplaced=document.getElementById('kvUnplaced');
   const balanceTableBody=document.querySelector('#balanceTable tbody');
   const studentTableBody=document.querySelector('#studentTable tbody');
-  const rosterTableBody=document.querySelector('#rosterTable tbody');
+  const rosterDoc=document.getElementById('rosterDoc');
   const unplacedTableBody=document.querySelector('#unplacedTable tbody');
   const studentsPreview=document.getElementById('studentsPreview');
   const studentsTableBody=document.querySelector('#studentsTable tbody');
@@ -813,44 +823,44 @@ try{
       studentTableBody.appendChild(tr);
     }
 
-    // Workshop rosters: merged title + single "Last, First" column, workshops A–Z
+    // Workshop rosters: document layout (sections), workshops A–Z
     const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
     for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
 
-    rosterTableBody.innerHTML='';
+    rosterDoc.innerHTML='';
     const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
     roSorted.forEach(w=>{
       const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
 
-      // merged and centered header row
-      const title=document.createElement('tr');
-      title.className='roster-title';
-      const td=document.createElement('td');
-      td.colSpan=1;
-      td.style.textAlign='center';
-      td.innerHTML = `
+      const section=document.createElement('section');
+      section.className='roster-section';
+
+      const header=document.createElement('div');
+      header.className='roster-header';
+      header.innerHTML = `
         <span class="ws-name">${w.name}</span>
         &nbsp;–&nbsp;<span class="instructor">${w.instructor}</span>
         ${w.room?`&nbsp;&nbsp;<span class="room">${w.room}</span>`:''}
-        &nbsp;&nbsp;<span class="count">Assigned students: ${list.length}</span>
+        &nbsp;&nbsp;<span class="count">Assigned: ${list.length}</span>
       `;
-      title.appendChild(td);
-      rosterTableBody.appendChild(title);
+      section.appendChild(header);
 
-      // one-column list: "Last, First"
+      const grid=document.createElement('div');
+      grid.className='name-grid';
       list.forEach(s=>{
-        const r=document.createElement('tr');
-        r.innerHTML=`<td>${s.last}, ${s.first}</td>`;
-        rosterTableBody.appendChild(r);
-      });
+        const item=document.createElement('div');
+        item.className='name';
+        const fullName = s.first ? `${s.last}, ${s.first}` : s.last;
+		item.textContent = fullName;
 
-      const sp=document.createElement('tr');
-      sp.className='roster-spacer';
-      sp.innerHTML=`<td></td>`;
-      rosterTableBody.appendChild(sp);
+        grid.appendChild(item);
+      });
+      section.appendChild(grid);
+
+      rosterDoc.appendChild(section);
     });
 
-    // Unplaced
+    // Unplaced table
     unplacedTableBody.innerHTML='';
     const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const u of unSorted){
@@ -897,13 +907,15 @@ try{
   };
   exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
 
+  // Roster PDF/CSV (document layout)
   printRostersBtn.onclick = () => {
-    const table = document.getElementById('rosterTable');
-    const head = '<tr><th>Students</th></tr>';
-    const html = paginateByHeight({tableEl: table, label: 'Workshop rosters', overrideHeadHTML: head});
+    const html = buildRosterHTMLForPDF();
     exportToPDF('Workshop Rosters', html);
   };
-  exportRostersCsvBtn.onclick = () => downloadCSV(toCSVFromTable('rosterTable'), 'rosters.csv');
+  exportRostersCsvBtn.onclick = () => {
+    const csv = buildRosterCSV();
+    downloadCSV(csv, 'rosters.csv');
+  };
 
   printUnplacedBtn.onclick = () => {
     const table = document.getElementById('unplacedTable');
@@ -911,6 +923,36 @@ try{
     exportToPDF('Unplaced Students', html);
   };
   exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
+
+  function buildRosterHTMLForPDF(){
+    // Use the already-rendered rosterDoc content; add minimal print-friendly CSS (names wrap nicely).
+    return `
+      <style>
+        .pdf-roster .roster-section{ margin-bottom:10pt; }
+        .pdf-roster .name-grid{ grid-template-columns: repeat(auto-fit, minmax(160pt, 1fr)); }
+      </style>
+      <div class="pdf-roster">${rosterDoc.innerHTML}</div>
+    `;
+  }
+
+  function buildRosterCSV(){
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const rows = [['Workshop','Instructor','Room','Assigned count','Student']];
+    const rosterMap = new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
+    for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
+    const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
+    roSorted.forEach(w=>{
+      const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+      if(list.length===0){
+        rows.push([w.name, w.instructor, w.room||'', '0', '']);
+      }else{
+        list.forEach((s,idx)=>{
+          rows.push([w.name, w.instructor, w.room||'', String(list.length), `${s.last}, ${s.first}`]);
+        });
+      }
+    });
+    return rows.map(r=>r.map(esc).join(',')).join('\r\n');
+  }
 
   function exportToPDF(title, html) {
     const lib = window.html2pdf;
@@ -928,6 +970,8 @@ try{
       h2 small { font-weight:400; color:#6b7280; }
       .pdf-page{ break-inside: avoid; }
       .pdf-page + .pdf-page{ break-before: page; }
+
+      /* table exports */
       table { width:100%; }
       table.report {
         border-collapse: separate; border-spacing: 0; border: 1px solid #d1d5db; border-radius: 10px; background: #fff;
@@ -942,6 +986,15 @@ try{
       .summary-table th:nth-child(3), .summary-table td:nth-child(3),
       .summary-table th:nth-child(4), .summary-table td:nth-child(4){ text-align:right; font-variant-numeric:tabular-nums; }
       .summary-table th:nth-child(5), .summary-table td:nth-child(5){ white-space:nowrap; }
+
+      /* roster document layout */
+      .roster-section{
+        border:1px solid #d1d5db; border-radius:10px; background:#fff; margin:0 0 10pt 0;
+      }
+      .roster-header{ background:#f3f4f6; font-weight:800; text-align:center; font-size:12pt; padding:8pt 9pt; }
+      .name-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(140pt, 1fr)); gap:6pt 10pt; padding:6pt 9pt 9pt 9pt; }
+      .name{ padding:2pt 0; border-bottom:1px solid #e5e7eb; }
+      .name:last-child{ border-bottom:0 }
     `;
 
     const container = document.createElement('div');
