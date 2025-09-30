@@ -1,4 +1,3 @@
-<!-- Author: Robert Lovelace with the help of AI -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -61,29 +60,23 @@ table.report{
 #balanceTable th:nth-child(4),#balanceTable td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
 #balanceTable th:nth-child(5),#balanceTable td:nth-child(5){white-space:nowrap}
 
-tbody tr:hover td{background:#fcfcff}
-.scrollbox{max-height:340px;overflow:auto;border:1px solid var(--line-soft);border-radius:12px;padding:6px;background:#fff}
-.dropzone{border:2px dashed #c7c9d1;border-radius:12px;padding:16px;text-align:center;color:#6b7280;background:#fff;transition:border-color .15s,background .15s,color .15s}
-.dropzone.drag{border-color:var(--lsu-purple);background:#f6f5ff;color:#3b2a6b}
-.dropzone.disabled{opacity:.5;filter:grayscale(20%);pointer-events:none}
-fieldset.locked{opacity:.7}
-.locknote{font-size:12px;color:#374151;background:#FFFBEB;border:1px solid #FDE68A;padding:8px;border-radius:8px}
-.nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
-@media print{.header,.tabs,.printbar,.badge{display:none !important}}
+/* Preview issue highlighting */
+.row-issue td{ background:#FFF7ED; }
+.issue-badge{ font-size:11px; padding:2px 6px; border-radius:999px; background:#FEF3C7; border:1px solid #FDE68A; color:#92400E; }
+.issue-legend{ color:#6b7280; font-size:12px; margin-top:6px }
 
-/* Roster group styling (inside tbody) */
-.roster-head th{
-  text-decoration: underline;           /* underline the titles row */
-  background:#f8fafc;
-}
-.roster-meta td{
-  background:#fff;
-  font-weight:700;                      /* bold the entire values row */
-}
+/* Roster group styling */
+.roster-head th{background:#f8fafc; text-decoration: underline;}
+.roster-meta td{background:#ffffff; font-weight:700;}
+.roster-students-head{display:none}
 .roster-spacer td{background:#fff;height:8px;border:0}
+
+/* Fallback if JS dies early */
+.nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
+
+@media print{.header,.tabs,.printbar,.badge{display:none !important}}
 </style>
 
-<!-- PDF export helper -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 </head>
 <body>
@@ -147,15 +140,19 @@ fieldset.locked{opacity:.7}
       </div>
       <div id="studentDrop" class="dropzone disabled">Drag &amp; drop Student CSV here</div>
     </div>
+
     <div id="studentsPreview" class="hidden" style="margin-top:10px">
       <div class="badge">loaded students</div>
       <div class="scrollbox">
         <table id="studentsTable" class="report">
           <thead>
-            <tr><th>Last Name</th><th>First Name</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th></tr>
+            <tr><th>Last Name</th><th>First Name</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th><th>Issues</th></tr>
           </thead>
           <tbody></tbody>
         </table>
+      </div>
+      <div class="issue-legend">
+        <span class="issue-badge">⚠</span> indicates: all three choices are the same, missing a choice, or an invalid workshop name.
       </div>
       <div class="printbar">
         <button id="printStudents" class="ghost">Export students (PDF)</button>
@@ -194,7 +191,7 @@ fieldset.locked{opacity:.7}
           <colgroup>
             <col style="width:28%"><col style="width:34%"><col style="width:12%"><col style="width:12%"><col style="width:14%">
           </colgroup>
-        <thead><tr><th>Instructor</th><th>Workshop</th><th>Capacity</th><th>Assigned</th><th>Room #</th></tr></thead>
+          <thead><tr><th>Instructor</th><th>Workshop</th><th>Capacity</th><th>Assigned</th><th>Room #</th></tr></thead>
           <tbody></tbody>
         </table>
         <div class="printbar">
@@ -219,7 +216,7 @@ fieldset.locked{opacity:.7}
       <div id="panelRosters" class="hidden">
         <div class="scrollbox">
           <table id="rosterTable" class="report">
-            <!-- thead left empty on purpose to avoid duplicate titles per group -->
+            <!-- FIX: no global header here to avoid duplicates -->
             <thead></thead>
             <tbody></tbody>
           </table>
@@ -259,12 +256,10 @@ function showInitError(msg){
 }
 
 try{
-  /* Global DnD guards */
   ['dragover','drop'].forEach(evt=>{
     window.addEventListener(evt, e=>{ e.preventDefault(); }, false);
   });
 
-  /* ------- DOM ------- */
   const numWorkshops=document.getElementById('numWorkshops');
   const buildWorkshopRows=document.getElementById('buildWorkshopRows');
   const workshopCsvFile=document.getElementById('workshopCsvFile');
@@ -313,10 +308,9 @@ try{
 
   if(!numWorkshops || !buildWorkshopRows || !wkContainer){ showInitError('Missing core DOM nodes. Please re-copy the full file.'); throw new Error('missing anchors'); }
 
-  /* ------- State ------- */
   let locked=false;
   let workshopList=[]; // {room,name,instructor,capacity}
-  let students=[];    // {id,last,first,label,preferences:[c1,c2,c3]}
+  let students=[];    // {id,last,first,label,preferences:[c1,c2,c3], _issues?:string[]}
   let assignMap=new Map();
   let unplaced=[];
   let deletedStack=[];
@@ -326,17 +320,14 @@ try{
     document.getElementById('appRoot')?.setAttribute('aria-busy','false');
   });
 
-  /* Helpers */
   const normalize=(s)=> (s==null?'':String(s)).replace(/^"+|"+$/g,'').trim().replace(/\s+/g,' ');
   const key=(s)=> normalize(s).toLowerCase();
   const enableRunIfReady=()=>{ runBtn.disabled=!(locked && students.length>0); };
 
-  /* Seed for stable randomization */
   let runSeed='';
   const makeSeed=()=>{ try{const a=new Uint32Array(2);crypto.getRandomValues(a);return a[0]+'-'+a[1];}catch(_){return Date.now()+'-'+Math.floor(Math.random()*1e9)}};
   const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); console.log('Draw seed:',runSeed); };
 
-  /* Robust file drop */
   function setDropHandlers(zone, onFile) {
     if(!zone) return;
     let dragDepth = 0;
@@ -364,7 +355,6 @@ try{
     clearWorkshops.disabled=!enabled;
   }
 
-  /* Build workshop rows */
   buildWorkshopRows.onclick=()=>{
     const n=parseInt(numWorkshops.value,10);
     if(!n||n<1||n>20){alert('Choose 1 to 20 workshops');return;}
@@ -398,7 +388,6 @@ try{
   }
   addWorkshopRowBtn.onclick=()=>{ if(locked) return; ensureHeader(); newRow(); };
 
-  /* Delete + Undo */
   wkContainer.addEventListener('click',(e)=>{
     const btn=e.target.closest?.('.wkDel'); if(!btn || locked) return;
     const row=btn.closest('.wkRow'); if(!row) return;
@@ -428,7 +417,6 @@ try{
     updateUndoState();
   };
 
-  /* Clear */
   clearWorkshops.onclick=()=>{
     wkContainer.innerHTML=""; numWorkshops.value="0"; wkErrors.classList.add('hidden');
     enableStudentsSection(false); locked=false; wkFieldset.classList.remove('locked'); lockNote.classList.add('hidden');
@@ -437,7 +425,6 @@ try{
     deletedStack=[]; updateUndoState(); enableRunIfReady();
   };
 
-  /* CSV utilities */
   function splitCSV(line){const out=[],re=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g;let m;while(m=re.exec(line)){out.push(m[1]?m[1].replace(/""/g,'"'):m[2]);if(!m[3])break;}return out;}
   function parseCSV(text){const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);const rows=[];for(const l of lines)rows.push(splitCSV(l).map(c=>c.trim()));return rows;}
   function extractInt(str){if(str==null)return null;const m=String(str).match(/-?\d+/);if(!m)return null;const n=parseInt(m[0],10);return Number.isFinite(n)?n:null;}
@@ -456,7 +443,6 @@ try{
     return {wIdx,iIdx,cIdx,rIdx,startIdx};
   }
 
-  /* Import workshops */
   async function importWorkshopsFromFile(file){
     try{
       const text=await file.text();
@@ -490,7 +476,6 @@ try{
   importWorkshopsBtn.onclick=()=>{ const f=workshopCsvFile.files?.[0]; if(!f){alert('Choose a workshops CSV file first');return;} importWorkshopsFromFile(f); };
   setDropHandlers(workshopDrop, importWorkshopsFromFile);
 
-  /* Lock workshops */
   lockWorkshops.onclick=()=>{
     const names=[...document.querySelectorAll('.wkName')],
           caps=[...document.querySelectorAll('.wkCap')],
@@ -529,7 +514,6 @@ try{
   };
   function enableStudentsSection(enable){ if(csvFile) csvFile.disabled=!enable; studentDrop?.classList.toggle('disabled',!enable); }
 
-  /* Students parsing: supports (Last,First,Choice1-3) OR legacy (Student,Choice1-3 with "Last, First") */
   function buildStudents(rows){
     const list=[];
     const hdr=(rows[0]||[]).map(c=>c.toLowerCase());
@@ -569,6 +553,27 @@ try{
     return list;
   }
 
+  function validWorkshopKeySet(){
+    const set=new Set();
+    if(workshopList.length){
+      for(const w of workshopList) set.add(key(w.name));
+    }else{
+      document.querySelectorAll('.wkName').forEach(inp=>{ const n=normalize(inp.value); if(n) set.add(key(n)); });
+    }
+    return set;
+  }
+
+  function detectStudentIssues(s){
+    const [c1,c2,c3]=s.preferences.map(normalize);
+    const issues=[];
+    if(c1 && c1===c2 && c1===c3) issues.push('All three choices are identical');
+    if(!c1 || !c2 || !c3) issues.push('Missing one or more choices');
+    const valid=validWorkshopKeySet();
+    const invalids = [c1,c2,c3].filter(v=>v && !valid.has(key(v)));
+    if(invalids.length>0) issues.push('Invalid workshop name(s)');
+    return issues;
+  }
+
   async function importStudentsFromFile(file){
     try{
       const name=(file?.name||'').toLowerCase();
@@ -579,6 +584,9 @@ try{
       if(!rows.length){alert('No rows found in CSV.');return;}
       students=buildStudents(rows);
       if(students.length===0){alert('No student records detected.');return;}
+
+      students.forEach(s=>{ s._issues = detectStudentIssues(s); });
+
       renderStudentsPreview(); enableRunIfReady();
     }catch(err){console.error(err);alert('Could not read student CSV.');}
   }
@@ -593,12 +601,14 @@ try{
     for(const s of sorted){
       const [c1,c2,c3]=s.preferences;
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td>`;
+      const issues = s._issues || [];
+      if(issues.length) tr.classList.add('row-issue');
+      const badge = issues.length ? `<span class="issue-badge" title="${issues.join(' • ')}">⚠</span>` : '';
+      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td><td>${badge}</td>`;
       studentsTableBody.appendChild(tr);
     }
   }
 
-  /* Assignment */
   function hash32(str){
     let h=2166136261>>>0;
     for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=(h>>>0)*16777619>>>0;}
@@ -674,7 +684,6 @@ try{
     return {fill};
   }
 
-  /* Run & render */
   runBtn.onclick=()=>{
     if(!locked){alert('Lock workshops first');return;}
     if(students.length===0){alert('Load students first');return;}
@@ -694,7 +703,6 @@ try{
 
     const roomByName = new Map(workshopList.map(w => [w.name, w.room || '']));
 
-    /* SUMMARY */
     balanceTableBody.innerHTML='';
     const wsSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
     wsSorted.forEach(w=>{
@@ -704,7 +712,7 @@ try{
       balanceTableBody.appendChild(tr);
     });
 
-    /* STUDENT ASSIGNMENTS (Last, First) */
+    /* Student assignments (clean, no issue highlighting) */
     studentTableBody.innerHTML='';
     const stSorted=students.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const s of stSorted){
@@ -715,7 +723,7 @@ try{
       studentTableBody.appendChild(tr);
     }
 
-    /* ROSTERS — grouped by workshop (A→Z by workshop name) */
+    /* Rosters: one per-group header (underlined) + bold meta row */
     const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
     for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
 
@@ -724,43 +732,29 @@ try{
     roSorted.forEach(w=>{
       const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
 
-      /* Titles row (underlined) */
       const head=document.createElement('tr');
       head.className='roster-head';
       head.innerHTML=`<th>Instructor</th><th>Workshop</th><th>Assigned count</th><th>Room #</th>`;
       rosterTableBody.appendChild(head);
 
-      /* Values row (ENTIRE ROW BOLDED) */
       const meta=document.createElement('tr');
       meta.className='roster-meta';
       meta.innerHTML=`<td>${w.instructor}</td><td>${w.name}</td><td>${list.length}</td><td>${w.room||''}</td>`;
       rosterTableBody.appendChild(meta);
 
-      /* Student rows: Last, First (no sub-header) */
       list.forEach(s=>{
         const r=document.createElement('tr');
         r.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td colspan="2"></td>`;
         rosterTableBody.appendChild(r);
       });
 
-      /* Spacer row */
       const sp=document.createElement('tr');
       sp.className='roster-spacer';
       sp.innerHTML=`<td colspan="4"></td>`;
       rosterTableBody.appendChild(sp);
     });
-
-    /* UNPLACED */
-    unplacedTableBody.innerHTML='';
-    const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
-    for(const u of unSorted){
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${u.last}</td><td>${u.first}</td><td>${u.preferences.join(' | ')}</td><td>${u.reason}</td>`;
-      unplacedTableBody.appendChild(tr);
-    }
   }
 
-  /* CSV helpers */
   function toCSVFromTable(tableId) {
     const t = document.getElementById(tableId);
     if (!t) return '';
@@ -775,7 +769,6 @@ try{
     URL.revokeObjectURL(url);
   }
 
-  /* Print/Export */
   if (printStudentsBtn) {
     printStudentsBtn.onclick = () => {
       const table = document.getElementById('studentsTable');
@@ -812,7 +805,6 @@ try{
   };
   exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
 
-  /* PDF helpers */
   function exportToPDF(title, html) {
     const lib = window.html2pdf;
     if(!lib){ alert('PDF library did not load. Try again or check your network.'); return; }
@@ -903,7 +895,6 @@ try{
     pages.push(wrap.outerHTML); measHost.remove(); return pages.join('');
   }
 
-  /* Tabs */
   function setTab(which) {
     [tabSummary, tabStudents, tabRosters, tabUnplaced].forEach(t => t.classList.remove('active'));
     [panelSummary, panelStudents, panelRosters, panelUnplaced].forEach(p => p.classList.add('hidden'));
