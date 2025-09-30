@@ -1,3 +1,4 @@
+<!-- Author: Robert Lovelace with the help of AI -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,6 +41,8 @@ button[disabled]{opacity:.55;cursor:not-allowed}
 .tab{padding:8px 12px;border:1px solid var(--line-soft);border-bottom:0;border-radius:10px 10px 0 0;background:#f8fafc;cursor:pointer}
 .tab.active{background:#fff;border-color:var(--lsu-purple);color:var(--lsu-purple)}
 .panel{border:1px solid var(--line-soft);border-radius:0 12px 12px 12px;background:#fff;padding:12px}
+
+/* tables */
 table{width:100%}
 table.report{
   border-collapse:separate;border-spacing:0;border:1px solid var(--line);
@@ -52,9 +55,12 @@ table.report{
 }
 .report th:last-child,.report td:last-child{border-right:0}
 .report tr:last-child td{border-bottom:0}
+
+/* Summary align */
 #balanceTable th:nth-child(3),#balanceTable td:nth-child(3),
 #balanceTable th:nth-child(4),#balanceTable td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
 #balanceTable th:nth-child(5),#balanceTable td:nth-child(5){white-space:nowrap}
+
 tbody tr:hover td{background:#fcfcff}
 .scrollbox{max-height:340px;overflow:auto;border:1px solid var(--line-soft);border-radius:12px;padding:6px;background:#fff}
 .dropzone{border:2px dashed #c7c9d1;border-radius:12px;padding:16px;text-align:center;color:#6b7280;background:#fff;transition:border-color .15s,background .15s,color .15s}
@@ -62,9 +68,22 @@ tbody tr:hover td{background:#fcfcff}
 .dropzone.disabled{opacity:.5;filter:grayscale(20%);pointer-events:none}
 fieldset.locked{opacity:.7}
 .locknote{font-size:12px;color:#374151;background:#FFFBEB;border:1px solid #FDE68A;padding:8px;border-radius:8px}
-@media print{.header,.tabs,.printbar,.badge{display:none !important}}
 .nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
+@media print{.header,.tabs,.printbar,.badge{display:none !important}}
+
+/* Roster group styling (inside tbody) */
+.roster-head th{
+  text-decoration: underline;           /* underline the titles row */
+  background:#f8fafc;
+}
+.roster-meta td{
+  background:#fff;
+  font-weight:700;                      /* bold the entire values row */
+}
+.roster-spacer td{background:#fff;height:8px;border:0}
 </style>
+
+<!-- PDF export helper -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 </head>
 <body>
@@ -175,7 +194,7 @@ fieldset.locked{opacity:.7}
           <colgroup>
             <col style="width:28%"><col style="width:34%"><col style="width:12%"><col style="width:12%"><col style="width:14%">
           </colgroup>
-          <thead><tr><th>Instructor</th><th>Workshop</th><th>Capacity</th><th>Assigned</th><th>Room #</th></tr></thead>
+        <thead><tr><th>Instructor</th><th>Workshop</th><th>Capacity</th><th>Assigned</th><th>Room #</th></tr></thead>
           <tbody></tbody>
         </table>
         <div class="printbar">
@@ -200,7 +219,8 @@ fieldset.locked{opacity:.7}
       <div id="panelRosters" class="hidden">
         <div class="scrollbox">
           <table id="rosterTable" class="report">
-            <thead><tr><th>Instructor</th><th>Workshop</th><th>Assigned count</th><th>Students (Last, First)</th><th>Room #</th></tr></thead>
+            <!-- thead left empty on purpose to avoid duplicate titles per group -->
+            <thead></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -239,10 +259,12 @@ function showInitError(msg){
 }
 
 try{
+  /* Global DnD guards */
   ['dragover','drop'].forEach(evt=>{
     window.addEventListener(evt, e=>{ e.preventDefault(); }, false);
   });
 
+  /* ------- DOM ------- */
   const numWorkshops=document.getElementById('numWorkshops');
   const buildWorkshopRows=document.getElementById('buildWorkshopRows');
   const workshopCsvFile=document.getElementById('workshopCsvFile');
@@ -291,6 +313,7 @@ try{
 
   if(!numWorkshops || !buildWorkshopRows || !wkContainer){ showInitError('Missing core DOM nodes. Please re-copy the full file.'); throw new Error('missing anchors'); }
 
+  /* ------- State ------- */
   let locked=false;
   let workshopList=[]; // {room,name,instructor,capacity}
   let students=[];    // {id,last,first,label,preferences:[c1,c2,c3]}
@@ -303,14 +326,17 @@ try{
     document.getElementById('appRoot')?.setAttribute('aria-busy','false');
   });
 
+  /* Helpers */
   const normalize=(s)=> (s==null?'':String(s)).replace(/^"+|"+$/g,'').trim().replace(/\s+/g,' ');
   const key=(s)=> normalize(s).toLowerCase();
   const enableRunIfReady=()=>{ runBtn.disabled=!(locked && students.length>0); };
 
+  /* Seed for stable randomization */
   let runSeed='';
   const makeSeed=()=>{ try{const a=new Uint32Array(2);crypto.getRandomValues(a);return a[0]+'-'+a[1];}catch(_){return Date.now()+'-'+Math.floor(Math.random()*1e9)}};
   const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); console.log('Draw seed:',runSeed); };
 
+  /* Robust file drop */
   function setDropHandlers(zone, onFile) {
     if(!zone) return;
     let dragDepth = 0;
@@ -338,6 +364,7 @@ try{
     clearWorkshops.disabled=!enabled;
   }
 
+  /* Build workshop rows */
   buildWorkshopRows.onclick=()=>{
     const n=parseInt(numWorkshops.value,10);
     if(!n||n<1||n>20){alert('Choose 1 to 20 workshops');return;}
@@ -364,12 +391,14 @@ try{
     wkContainer.appendChild(row);
   }
   function renderWorkshopGrid(n){
-    wkContainer.innerHTML=""; ensureHeader();
+    wkContainer.innerHTML="";
+    ensureHeader();
     deletedStack=[]; updateUndoState();
     for(let i=0;i<n;i++) newRow({capacity:''});
   }
   addWorkshopRowBtn.onclick=()=>{ if(locked) return; ensureHeader(); newRow(); };
 
+  /* Delete + Undo */
   wkContainer.addEventListener('click',(e)=>{
     const btn=e.target.closest?.('.wkDel'); if(!btn || locked) return;
     const row=btn.closest('.wkRow'); if(!row) return;
@@ -399,6 +428,7 @@ try{
     updateUndoState();
   };
 
+  /* Clear */
   clearWorkshops.onclick=()=>{
     wkContainer.innerHTML=""; numWorkshops.value="0"; wkErrors.classList.add('hidden');
     enableStudentsSection(false); locked=false; wkFieldset.classList.remove('locked'); lockNote.classList.add('hidden');
@@ -407,6 +437,7 @@ try{
     deletedStack=[]; updateUndoState(); enableRunIfReady();
   };
 
+  /* CSV utilities */
   function splitCSV(line){const out=[],re=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g;let m;while(m=re.exec(line)){out.push(m[1]?m[1].replace(/""/g,'"'):m[2]);if(!m[3])break;}return out;}
   function parseCSV(text){const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);const rows=[];for(const l of lines)rows.push(splitCSV(l).map(c=>c.trim()));return rows;}
   function extractInt(str){if(str==null)return null;const m=String(str).match(/-?\d+/);if(!m)return null;const n=parseInt(m[0],10);return Number.isFinite(n)?n:null;}
@@ -425,6 +456,7 @@ try{
     return {wIdx,iIdx,cIdx,rIdx,startIdx};
   }
 
+  /* Import workshops */
   async function importWorkshopsFromFile(file){
     try{
       const text=await file.text();
@@ -458,6 +490,7 @@ try{
   importWorkshopsBtn.onclick=()=>{ const f=workshopCsvFile.files?.[0]; if(!f){alert('Choose a workshops CSV file first');return;} importWorkshopsFromFile(f); };
   setDropHandlers(workshopDrop, importWorkshopsFromFile);
 
+  /* Lock workshops */
   lockWorkshops.onclick=()=>{
     const names=[...document.querySelectorAll('.wkName')],
           caps=[...document.querySelectorAll('.wkCap')],
@@ -496,7 +529,7 @@ try{
   };
   function enableStudentsSection(enable){ if(csvFile) csvFile.disabled=!enable; studentDrop?.classList.toggle('disabled',!enable); }
 
-  // ------ Students parsing: supports (Last,First,Choice1-3) OR legacy (Student,Choice1-3)
+  /* Students parsing: supports (Last,First,Choice1-3) OR legacy (Student,Choice1-3 with "Last, First") */
   function buildStudents(rows){
     const list=[];
     const hdr=(rows[0]||[]).map(c=>c.toLowerCase());
@@ -510,7 +543,6 @@ try{
       startIdx=1;
       idx={ student:0, c1:1, c2:2, c3:3 };
     }else if(hdr.length){
-      // preferred header
       if(hdr[0]!=='last' || hdr[1]!=='first') startIdx=0; else startIdx=1;
     }
 
@@ -520,7 +552,6 @@ try{
       if(mode==='legacy'){
         const label = normalize(r[idx.student]||'');
         if(!label) continue;
-        // Try split "Last, First" if present
         const m = label.match(/^\s*([^,]+)\s*,\s*(.+)\s*$/);
         if(m){ last=normalize(m[1]); first=normalize(m[2]); }
         else { last=label; first=''; }
@@ -533,7 +564,7 @@ try{
       }
       const label = last ? (first ? `${last}, ${first}` : last) : first;
       const id = label + '##' + i;
-      list.push({ id, last, first, label, preferences:[picks[0]||'', picks[1]||'', picks[2]||''] });
+      list.push({ id, last, first, label, preferences:[picks[0]||'',picks[1]||'',picks[2]||''] });
     }
     return list;
   }
@@ -567,6 +598,7 @@ try{
     }
   }
 
+  /* Assignment */
   function hash32(str){
     let h=2166136261>>>0;
     for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=(h>>>0)*16777619>>>0;}
@@ -642,6 +674,7 @@ try{
     return {fill};
   }
 
+  /* Run & render */
   runBtn.onclick=()=>{
     if(!locked){alert('Lock workshops first');return;}
     if(students.length===0){alert('Load students first');return;}
@@ -661,7 +694,7 @@ try{
 
     const roomByName = new Map(workshopList.map(w => [w.name, w.room || '']));
 
-    // SUMMARY
+    /* SUMMARY */
     balanceTableBody.innerHTML='';
     const wsSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
     wsSorted.forEach(w=>{
@@ -671,7 +704,7 @@ try{
       balanceTableBody.appendChild(tr);
     });
 
-    // STUDENT ASSIGNMENTS (with Last, First)
+    /* STUDENT ASSIGNMENTS (Last, First) */
     studentTableBody.innerHTML='';
     const stSorted=students.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const s of stSorted){
@@ -682,19 +715,42 @@ try{
       studentTableBody.appendChild(tr);
     }
 
-    // ROSTERS (names as "Last, First" comma-separated)
-    const roster=new Map(); workshopList.forEach(w=>roster.set(w.name,[]));
-    for(const s of students){const a=assignMap.get(s.id); if(a) roster.get(a).push(`${s.last}${s.first?`, ${s.first}`:''}`);}
+    /* ROSTERS — grouped by workshop (A→Z by workshop name) */
+    const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
+    for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
+
     rosterTableBody.innerHTML='';
-    const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
+    const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
     roSorted.forEach(w=>{
-      const list=(roster.get(w.name)||[]).slice().sort((a,b)=>a.localeCompare(b));
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${w.instructor}</td><td>${w.name}</td><td>${list.length}</td><td>${list.join(', ')}</td><td>${w.room||''}</td>`;
-      rosterTableBody.appendChild(tr);
+      const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+
+      /* Titles row (underlined) */
+      const head=document.createElement('tr');
+      head.className='roster-head';
+      head.innerHTML=`<th>Instructor</th><th>Workshop</th><th>Assigned count</th><th>Room #</th>`;
+      rosterTableBody.appendChild(head);
+
+      /* Values row (ENTIRE ROW BOLDED) */
+      const meta=document.createElement('tr');
+      meta.className='roster-meta';
+      meta.innerHTML=`<td>${w.instructor}</td><td>${w.name}</td><td>${list.length}</td><td>${w.room||''}</td>`;
+      rosterTableBody.appendChild(meta);
+
+      /* Student rows: Last, First (no sub-header) */
+      list.forEach(s=>{
+        const r=document.createElement('tr');
+        r.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td colspan="2"></td>`;
+        rosterTableBody.appendChild(r);
+      });
+
+      /* Spacer row */
+      const sp=document.createElement('tr');
+      sp.className='roster-spacer';
+      sp.innerHTML=`<td colspan="4"></td>`;
+      rosterTableBody.appendChild(sp);
     });
 
-    // UNPLACED
+    /* UNPLACED */
     unplacedTableBody.innerHTML='';
     const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const u of unSorted){
@@ -704,6 +760,7 @@ try{
     }
   }
 
+  /* CSV helpers */
   function toCSVFromTable(tableId) {
     const t = document.getElementById(tableId);
     if (!t) return '';
@@ -718,7 +775,44 @@ try{
     URL.revokeObjectURL(url);
   }
 
-  // PRINT/EXPORT
+  /* Print/Export */
+  if (printStudentsBtn) {
+    printStudentsBtn.onclick = () => {
+      const table = document.getElementById('studentsTable');
+      const html = paginateByHeight({tableEl: table, label: 'Students and choices'});
+      exportToPDF('Students (Choices)', html);
+    };
+    exportStudentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentsTable'), 'students.csv');
+  }
+  printSummaryBtn.onclick = () => {
+    const table = document.getElementById('balanceTable');
+    const html = paginateByHeight({tableEl: table,label: 'Workshop capacities & assignments',extraTableClass: 'summary-table'});
+    exportToPDF('Summary', html);
+  };
+  exportSummaryCsvBtn.onclick = () => downloadCSV(toCSVFromTable('balanceTable'), 'summary.csv');
+
+  printAssignmentsBtn.onclick = () => {
+    const table = document.getElementById('studentTable');
+    const html = paginateByHeight({tableEl: table, label: 'Assignments'});
+    exportToPDF('Student Assignments', html);
+  };
+  exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
+
+  printRostersBtn.onclick = () => {
+    const table = document.getElementById('rosterTable');
+    const html = paginateByHeight({tableEl: table, label: 'Workshop rosters'});
+    exportToPDF('Workshop Rosters', html);
+  };
+  exportRostersCsvBtn.onclick = () => downloadCSV(toCSVFromTable('rosterTable'), 'rosters.csv');
+
+  printUnplacedBtn.onclick = () => {
+    const table = document.getElementById('unplacedTable');
+    const html = paginateByHeight({tableEl: table, label: 'Unplaced'});
+    exportToPDF('Unplaced Students', html);
+  };
+  exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
+
+  /* PDF helpers */
   function exportToPDF(title, html) {
     const lib = window.html2pdf;
     if(!lib){ alert('PDF library did not load. Try again or check your network.'); return; }
@@ -742,7 +836,7 @@ try{
       thead { display: table-header-group; }
       .report thead th { background:#f8fafc; font-weight:600; }
       .report th, .report td {
-        border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; padding:7pt 8pt; line-height:1.25; text-align: left; vertical-align: top;
+        border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; padding:7pt 8pt; line-height:1.25; vertical-align: top; text-align: left;
       }
       .report th:last-child, .report td:last-child { border-right:0 }
       .report tr:last-child td { border-bottom:0 }
@@ -809,56 +903,7 @@ try{
     pages.push(wrap.outerHTML); measHost.remove(); return pages.join('');
   }
 
-  // Buttons
-  if (printStudentsBtn) {
-    printStudentsBtn.onclick = () => {
-      const table = document.getElementById('studentsTable');
-      const html = paginateByHeight({tableEl: table, label: 'Students and choices'});
-      exportToPDF('Students (Choices)', html);
-    };
-    exportStudentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentsTable'), 'students.csv');
-  }
-  printSummaryBtn.onclick = () => {
-    const table = document.getElementById('balanceTable');
-    const html = paginateByHeight({tableEl: table,label: 'Workshop capacities & assignments',extraTableClass: 'summary-table'});
-    exportToPDF('Summary', html);
-  };
-  exportSummaryCsvBtn.onclick = () => downloadCSV(toCSVFromTable('balanceTable'), 'summary.csv');
-
-  printAssignmentsBtn.onclick = () => {
-    const table = document.getElementById('studentTable');
-    const html = paginateByHeight({tableEl: table, label: 'Assignments'});
-    exportToPDF('Student Assignments', html);
-  };
-  exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
-
-  printRostersBtn.onclick = () => {
-    const src = document.getElementById('rosterTable');
-    const head = `<tr><th>Workshop</th><th>Instructor</th><th>Assigned count</th><th>Students (Last, First)</th><th>Room #</th></tr>`;
-    const html = paginateByHeight({
-      tableEl: src, label: 'Workshop rosters', overrideHeadHTML: head,
-      transformRow: (r) => {
-        const c = r.cells;
-        return `<tr>
-          <td>${c[1]?.innerHTML ?? ''}</td>
-          <td>${c[0]?.innerHTML ?? ''}</td>
-          <td>${c[2]?.innerHTML ?? ''}</td>
-          <td>${c[3]?.innerHTML ?? ''}</td>
-          <td>${c[4]?.innerHTML ?? ''}</td>
-        </tr>`;
-      }
-    });
-    exportToPDF('Workshop Rosters', html);
-  };
-  exportRostersCsvBtn.onclick = () => downloadCSV(toCSVFromTable('rosterTable'), 'rosters.csv');
-
-  printUnplacedBtn.onclick = () => {
-    const table = document.getElementById('unplacedTable');
-    const html = paginateByHeight({tableEl: table, label: 'Unplaced'});
-    exportToPDF('Unplaced Students', html);
-  };
-  exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
-
+  /* Tabs */
   function setTab(which) {
     [tabSummary, tabStudents, tabRosters, tabUnplaced].forEach(t => t.classList.remove('active'));
     [panelSummary, panelStudents, panelRosters, panelUnplaced].forEach(p => p.classList.add('hidden'));
