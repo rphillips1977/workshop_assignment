@@ -41,6 +41,11 @@ button[disabled]{opacity:.55;cursor:not-allowed}
 .tab.active{background:#fff;border-color:var(--lsu-purple);color:var(--lsu-purple)}
 .panel{border:1px solid var(--line-soft);border-radius:0 12px 12px 12px;background:#fff;padding:12px}
 
+/* drop zones */
+.dropzone{display:flex;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:12px;min-height:44px;color:#6b7280;background:#fff}
+.dropzone.drag{border-color:var(--lsu-purple);background:#faf5ff}
+.dropzone.disabled{opacity:.6}
+
 /* tables */
 table{width:100%}
 table.report{
@@ -65,10 +70,19 @@ table.report{
 .issue-badge{ font-size:11px; padding:2px 6px; border-radius:999px; background:#FEF3C7; border:1px solid #FDE68A; color:#92400E; }
 .issue-legend{ color:#6b7280; font-size:12px; margin-top:6px }
 
-/* Roster group styling */
-.roster-head th{background:#f8fafc; text-decoration: underline;}
-.roster-meta td{background:#ffffff; font-weight:700;}
-.roster-students-head{display:none}
+/* Roster styling */
+#rosterTable thead{ display:none; } /* remove the old top header row */
+.roster-title td{
+  background:#f3f4f6;
+  font-weight:800;
+  text-decoration:none;
+  text-align:center;
+  font-size:16px;
+}
+.roster-title .ws-name{font-weight:900}
+.roster-title .instructor{font-weight:800}
+.roster-title .room{color:#374151}
+.roster-title .count{float:right; font-weight:800}
 .roster-spacer td{background:#fff;height:8px;border:0}
 
 /* Fallback if JS dies early */
@@ -216,8 +230,9 @@ table.report{
       <div id="panelRosters" class="hidden">
         <div class="scrollbox">
           <table id="rosterTable" class="report">
-            <!-- FIX: no global header here to avoid duplicates -->
-            <thead></thead>
+            <thead>
+              <tr><th>Instructor</th><th>Workshop</th><th>Assigned count</th><th>Room #</th></tr>
+            </thead>
             <tbody></tbody>
           </table>
         </div>
@@ -256,6 +271,7 @@ function showInitError(msg){
 }
 
 try{
+  // Prevent browser from opening dropped files
   ['dragover','drop'].forEach(evt=>{
     window.addEventListener(evt, e=>{ e.preventDefault(); }, false);
   });
@@ -309,8 +325,8 @@ try{
   if(!numWorkshops || !buildWorkshopRows || !wkContainer){ showInitError('Missing core DOM nodes. Please re-copy the full file.'); throw new Error('missing anchors'); }
 
   let locked=false;
-  let workshopList=[]; // {room,name,instructor,capacity}
-  let students=[];    // {id,last,first,label,preferences:[c1,c2,c3], _issues?:string[]}
+  let workshopList=[];
+  let students=[];
   let assignMap=new Map();
   let unplaced=[];
   let deletedStack=[];
@@ -320,6 +336,7 @@ try{
     document.getElementById('appRoot')?.setAttribute('aria-busy','false');
   });
 
+  // FIX: correct whitespace regex
   const normalize=(s)=> (s==null?'':String(s)).replace(/^"+|"+$/g,'').trim().replace(/\s+/g,' ');
   const key=(s)=> normalize(s).toLowerCase();
   const enableRunIfReady=()=>{ runBtn.disabled=!(locked && students.length>0); };
@@ -425,14 +442,30 @@ try{
     deletedStack=[]; updateUndoState(); enableRunIfReady();
   };
 
-  function splitCSV(line){const out=[],re=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g;let m;while(m=re.exec(line)){out.push(m[1]?m[1].replace(/""/g,'"'):m[2]);if(!m[3])break;}return out;}
-  function parseCSV(text){const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);const rows=[];for(const l of lines)rows.push(splitCSV(l).map(c=>c.trim()));return rows;}
-  function extractInt(str){if(str==null)return null;const m=String(str).match(/-?\d+/);if(!m)return null;const n=parseInt(m[0],10);return Number.isFinite(n)?n:null;}
+  // FIX: real CSV splitter regex and line breaks
+  function splitCSV(line){
+    const out=[];
+    const regex=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g;
+    let m;
+    while((m=regex.exec(line))){ out.push(m[1]?m[1].replace(/""/g,'"'):m[2]); if(!m[3]) break; }
+    return out;
+  }
+  function parseCSV(text){
+    const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    const rows=[];
+    for(const l of lines) rows.push(splitCSV(l).map(c=>c.trim()));
+    return rows;
+  }
+  function extractInt(str){ if(str==null) return null; const m=String(str).match(/-?\d+/); if(!m) return null; const n=parseInt(m[0],10); return Number.isFinite(n)?n:null; }
+
   function detectWorkshopColumns(rows){
     if(!rows.length) return {wIdx:0,iIdx:1,cIdx:null,rIdx:null,startIdx:0};
     const hdr=rows[0].map(c=>c.toLowerCase());
     const findIdx=(rxs)=>hdr.findIndex(h=>rxs.some(rx=>rx.test(h)));
-    let wIdx=findIdx([/workshop/]), iIdx=findIdx([/instructor/]), cIdx=findIdx([/capacit/,/^cap$/,/(max|seats|size)/]), rIdx=findIdx([/room\s*#?/,/room number/,/^room$/,/(location|^rm$|rm\.)/]);
+    let wIdx=findIdx([/workshop/]),
+        iIdx=findIdx([/instructor/]),
+        cIdx=findIdx([/capacit/,/^cap$/,/(max|seats|size)/]),
+        rIdx=findIdx([/room\s*#?/,/room number/,/^room$/,/(location|^rm$|rm\.)/]);
     let startIdx=0;
     if(wIdx!==-1||iIdx!==-1||cIdx!==-1||rIdx!==-1){startIdx=1;
       if(wIdx===-1)wIdx=(iIdx===0?1:0);
@@ -452,8 +485,7 @@ try{
       const seen=new Map();
       for(let i=startIdx;i<rows.length;i++){
         const name=normalize(rows[i][wIdx]||'');
-        const instructor=normalize(rows[i][iIdx]||'');
-        if(!name) continue;
+        const instructor=normalize(rows[i][iIdx]||''); if(!name) continue;
         let capacity='12';
         if(cIdx!=null){
           const capNum=extractInt(rows[i][cIdx]);
@@ -523,9 +555,7 @@ try{
 
     const has = (t)=> hdr.includes(t);
     if(hdr.length && (has('student') || /student/.test(hdr[0]||''))){
-      mode='legacy';
-      startIdx=1;
-      idx={ student:0, c1:1, c2:2, c3:3 };
+      mode='legacy'; startIdx=1; idx={ student:0, c1:1, c2:2, c3:3 };
     }else if(hdr.length){
       if(hdr[0]!=='last' || hdr[1]!=='first') startIdx=0; else startIdx=1;
     }
@@ -534,15 +564,12 @@ try{
       const r=rows[i];
       let last='', first='', picks=[];
       if(mode==='legacy'){
-        const label = normalize(r[idx.student]||'');
-        if(!label) continue;
+        const label = normalize(r[idx.student]||''); if(!label) continue;
         const m = label.match(/^\s*([^,]+)\s*,\s*(.+)\s*$/);
-        if(m){ last=normalize(m[1]); first=normalize(m[2]); }
-        else { last=label; first=''; }
+        if(m){ last=normalize(m[1]); first=normalize(m[2]); } else { last=label; first=''; }
         picks=[normalize(r[idx.c1]||''), normalize(r[idx.c2]||''), normalize(r[idx.c3]||'')];
       }else{
-        last=normalize(r[idx.last]||r[0]||'');
-        first=normalize(r[idx.first]||r[1]||'');
+        last=normalize(r[idx.last]||r[0]||''); first=normalize(r[idx.first]||r[1]||'');
         picks=[normalize(r[idx.c1]||r[2]||''), normalize(r[idx.c2]||r[3]||''), normalize(r[idx.c3]||r[4]||'')];
         if(!last && !first) continue;
       }
@@ -712,7 +739,6 @@ try{
       balanceTableBody.appendChild(tr);
     });
 
-    /* Student assignments (clean, no issue highlighting) */
     studentTableBody.innerHTML='';
     const stSorted=students.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const s of stSorted){
@@ -723,7 +749,6 @@ try{
       studentTableBody.appendChild(tr);
     }
 
-    /* Rosters: one per-group header (underlined) + bold meta row */
     const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
     for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
 
@@ -732,15 +757,13 @@ try{
     roSorted.forEach(w=>{
       const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
 
-      const head=document.createElement('tr');
-      head.className='roster-head';
-      head.innerHTML=`<th>Instructor</th><th>Workshop</th><th>Assigned count</th><th>Room #</th>`;
-      rosterTableBody.appendChild(head);
-
-      const meta=document.createElement('tr');
-      meta.className='roster-meta';
-      meta.innerHTML=`<td>${w.instructor}</td><td>${w.name}</td><td>${list.length}</td><td>${w.room||''}</td>`;
-      rosterTableBody.appendChild(meta);
+      const title=document.createElement('tr');
+      title.className='roster-title';
+      const td=document.createElement('td');
+      td.colSpan=4;
+      td.innerHTML = `<span class="ws-name">${w.name}</span> – <span class="instructor">${w.instructor}</span>${w.room?`, <span class="room">${w.room}</span>`:''} <span class="count">Total assigned: ${list.length}</span>`;
+      title.appendChild(td);
+      rosterTableBody.appendChild(title);
 
       list.forEach(s=>{
         const r=document.createElement('tr');
@@ -753,13 +776,21 @@ try{
       sp.innerHTML=`<td colspan="4"></td>`;
       rosterTableBody.appendChild(sp);
     });
+
+    unplacedTableBody.innerHTML='';
+    const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+    for(const u of unSorted){
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${u.last}</td><td>${u.first}</td><td>${u.preferences.join(' | ')}</td><td>${u.reason}</td>`;
+      unplacedTableBody.appendChild(tr);
+    }
   }
 
   function toCSVFromTable(tableId) {
     const t = document.getElementById(tableId);
     if (!t) return '';
     const rows = [...t.querySelectorAll('tr')];
-    const esc = v => `"${String(v).replace(/"/g, '""')}"`;
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
     return rows.map(r => [...r.children].map(c => esc(c.innerText || c.textContent || '')).join(',')).join('\r\n');
   }
   function downloadCSV(csv, name) {
