@@ -38,7 +38,7 @@ button[disabled]{opacity:.55;cursor:not-allowed}
 .note{color:var(--muted);font-size:12px}
 .tabs{display:flex;gap:8px;margin:8px 0 0}
 .tab{padding:8px 12px;border:1px solid var(--line-soft);border-bottom:0;border-radius:10px 10px 0 0;background:#f8fafc;cursor:pointer}
-.tab.active{background:#fff;border-color:var(--lsu-purple);color:var(--lsu-purple)}
+.tab.active{background:#fff;border-color:var(--lsu-purple);color:#lsu-purple}
 .panel{border:1px solid var(--line-soft);border-radius:0 12px 12px 12px;background:#fff;padding:12px}
 
 /* drop zones */
@@ -190,8 +190,8 @@ table.report{
     <div class="two">
       <div>
         <label class="small">
-          Upload CSV with columns: Last, First, Choice1, Choice2, Choice3
-          <br>(Also supports legacy Student, Choice1, Choice2, Choice3)
+          Upload CSV with columns: Last, First, School, Choice1, Choice2, Choice3
+          <br>(School is optional. Also supports legacy Student, Choice1, Choice2, Choice3)
         </label>
         <input id="csvFile" type="file" accept=".csv" disabled>
       </div>
@@ -203,7 +203,10 @@ table.report{
       <div class="scrollbox">
         <table id="studentsTable" class="report">
           <thead>
-            <tr><th>Last Name</th><th>First Name</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th><th>Issues</th></tr>
+            <tr>
+              <th>Last Name</th><th>First Name</th><th>School</th>
+              <th>First Choice</th><th>Second Choice</th><th>Third Choice</th><th>Issues</th>
+            </tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -260,7 +263,7 @@ table.report{
       <div id="panelStudents" class="hidden">
         <div class="scrollbox">
           <table id="studentTable" class="report">
-            <thead><tr><th>Last Name</th><th>First Name</th><th>Assigned workshop</th><th>Room</th></tr></thead>
+            <thead><tr><th>Last Name</th><th>First Name</th><th>School</th><th>Assigned workshop</th><th>Room</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -283,7 +286,7 @@ table.report{
       <div id="panelUnplaced" class="hidden">
         <div class="scrollbox">
           <table id="unplacedTable" class="report">
-            <thead><tr><th>Last Name</th><th>First Name</th><th>Choices in rank order</th><th>Reason</th></tr></thead>
+            <thead><tr><th>Last Name</th><th>First Name</th><th>School</th><th>Choices in rank order</th><th>Reason</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -396,7 +399,7 @@ try{
   const makeSeed=()=>{ try{const a=new Uint32Array(2);crypto.getRandomValues(a);return a[0]+'-'+a[1];}catch(_){return Date.now()+'-'+Math.floor(Math.random()*1e9)}};
   const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); console.log('Draw seed:',runSeed); };
 
-  // robust drop handlers
+  // robust drop handlers (now also sync to input for Import buttons)
   function setDropHandlers({zone, onFile, input, acceptExts=['.csv']}){
     if(!zone) return;
     let dragDepth = 0;
@@ -441,6 +444,12 @@ try{
       const file=pickFile(e.dataTransfer);
       if(!file){ alert('No file found in drop. Please drop a CSV file.'); return; }
       if(!isAccepted(file)){ alert('Please drop a .csv file.'); return; }
+      // NEW: sync dropped file to file input so the Import button works
+      if (input) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+      }
       onFile(file);
     }, {passive:false});
   }
@@ -663,36 +672,54 @@ try{
     if(enable){ studentDrop.setAttribute('tabindex','0'); } else { studentDrop.removeAttribute('tabindex'); }
   }
 
+  // Student CSV: detect Last, First, School, Choice1..3; or legacy Student, Choice1..3
   function buildStudents(rows){
     const list=[];
-    const hdr=(rows[0]||[]).map(c=>c.toLowerCase());
+    const hdr=(rows[0]||[]).map(c=>String(c||'').toLowerCase());
     let startIdx=0;
     let mode='lastfirst';
-    let idx={last:0, first:1, c1:2, c2:3, c3:4};
-
+    let idx={last:0, first:1, school:null, c1:2, c2:3, c3:4};
     const has = (t)=> hdr.includes(t);
+    const findIdx=(rxs)=> hdr.findIndex(h=>rxs.some(rx=>rx.test(h)));
+
     if(hdr.length && (has('student') || /student/.test(hdr[0]||''))){
-      mode='legacy'; startIdx=1; idx={ student:0, c1:1, c2:2, c3:3 };
+      mode='legacy'; startIdx=1; idx={ student:0, c1:1, c2:2, c3:3, school:null };
+      const sIdx = findIdx([/^school$/, /high\s*school/, /school\s*name/, /^campus$/, /^hs$/]);
+      if (sIdx !== -1) { idx.school = sIdx; mode='legacy-plus'; }
     }else if(hdr.length){
-      if(hdr[0]!=='last' || hdr[1]!=='first') startIdx=0; else startIdx=1;
+      const lastIdx = findIdx([/^last$/, /last\s*name/]);
+      const firstIdx = findIdx([/^first$/, /first\s*name/]);
+      const schoolIdx= findIdx([/^school$/, /high\s*school/, /school\s*name/, /^campus$/, /^hs$/]);
+      const c1Idx = findIdx([/^choice\s*1$/, /^choice1$/, /^first\s*choice$/, /^1st\s*choice$/]);
+      const c2Idx = findIdx([/^choice\s*2$/, /^choice2$/, /^second\s*choice$/, /^2nd\s*choice$/]);
+      const c3Idx = findIdx([/^choice\s*3$/, /^choice3$/, /^third\s*choice$/, /^3rd\s*choice$/]);
+      idx.last = lastIdx !== -1 ? lastIdx : 0;
+      idx.first = firstIdx !== -1 ? firstIdx : 1;
+      idx.school = schoolIdx !== -1 ? schoolIdx : null;
+      idx.c1 = c1Idx !== -1 ? c1Idx : 2;
+      idx.c2 = c2Idx !== -1 ? c2Idx : 3;
+      idx.c3 = c3Idx !== -1 ? c3Idx : 4;
+      if (hdr.some(h => /(last|first|choice|school)/.test(h))) startIdx=1;
     }
 
     for(let i=startIdx;i<rows.length;i++){
-      const r=rows[i];
-      let last='', first='', picks=[];
-      if(mode==='legacy'){
+      const r=rows[i]||[];
+      let last='', first='', school='', picks=[];
+      if(mode==='legacy' || mode==='legacy-plus'){
         const label = normalize(r[idx.student]||''); if(!label) continue;
         const m = label.match(/^\s*([^,]+)\s*,\s*(.+)\s*$/);
         if(m){ last=normalize(m[1]); first=normalize(m[2]); } else { last=label; first=''; }
+        school = idx.school!=null ? normalize(r[idx.school]||'') : '';
         picks=[normalize(r[idx.c1]||''), normalize(r[idx.c2]||''), normalize(r[idx.c3]||'')];
       }else{
         last=normalize(r[idx.last]||r[0]||''); first=normalize(r[idx.first]||r[1]||'');
+        school = idx.school!=null ? normalize(r[idx.school]||'') : '';
         picks=[normalize(r[idx.c1]||r[2]||''), normalize(r[idx.c2]||r[3]||''), normalize(r[idx.c3]||r[4]||'')];
         if(!last && !first) continue;
       }
       const label = last ? (first ? `${last}, ${first}` : last) : first;
       const id = label + '##' + i;
-      list.push({ id, last, first, label, preferences:[picks[0]||'',picks[1]||'',picks[2]||''] });
+      list.push({ id, last, first, school, label, preferences:[picks[0]||'',picks[1]||'',picks[2]||''] });
     }
     return list;
   }
@@ -753,7 +780,7 @@ try{
       const issues = s._issues || [];
       const tr=document.createElement('tr');
       if(issues.length){ tr.classList.add('row-issue'); anyIssues=true; }
-      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td><td>${issuesHTML(issues)}</td>`;
+      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${s.school||''}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td><td>${issuesHTML(issues)}</td>`;
       studentsTableBody.appendChild(tr);
     }
     const legend=document.getElementById('issueLegend');
@@ -830,7 +857,7 @@ try{
     for(const s of unassigned.values()){
       const known = s.preferences.filter(p => nameToIdx.has(key(p)));
       const reason = known.length===0 ? 'choices unknown' : 'no capacity remaining';
-      unplaced.push({id:s.id, last:s.last, first:s.first, preferences:s.preferences, reason});
+      unplaced.push({id:s.id, last:s.last, first:s.first, school:s.school||'', preferences:s.preferences, reason});
     }
 
     return {fill};
@@ -872,13 +899,13 @@ try{
       const assigned=assignMap.get(s.id)||'';
       const room=roomByName.get(assigned)||'';
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${assigned}</td><td>${room}</td>`;
+      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${s.school||''}</td><td>${assigned}</td><td>${room}</td>`;
       studentTableBody.appendChild(tr);
     }
 
-    // Workshop rosters
+    // Workshop rosters (with school inline)
     const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
-    for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
+    for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first, school:s.school||''});}
 
     rosterDoc.innerHTML='';
     const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
@@ -904,7 +931,7 @@ try{
         const item=document.createElement('div');
         item.className='name';
         const fullName = s.first ? `${s.last}, ${s.first}` : s.last;
-        item.textContent = fullName;
+        item.textContent = s.school ? `${fullName} — ${s.school}` : fullName;
         grid.appendChild(item);
       });
       section.appendChild(grid);
@@ -916,7 +943,7 @@ try{
     const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const u of unSorted){
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${u.last}</td><td>${u.first}</td><td>${u.preferences.join(' | ')}</td><td>${u.reason}</td>`;
+      tr.innerHTML=`<td>${u.last}</td><td>${u.first}</td><td>${u.school||''}</td><td>${u.preferences.join(' | ')}</td><td>${u.reason}</td>`;
       unplacedTableBody.appendChild(tr);
     }
   }
@@ -987,16 +1014,16 @@ try{
 
   function buildRosterCSV(){
     const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
-    const rows = [['Workshop','Instructor','Room','Assigned count','Student']];
+    const rows = [['Workshop','Instructor','Room','Assigned count','Student','School']];
     const rosterMap = new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
-    for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
+    for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first, school:s.school||''});}
     const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
     roSorted.forEach(w=>{
       const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
       if(list.length===0){
-        rows.push([w.name, w.instructor, w.room||'', '0', '']);
+        rows.push([w.name, w.instructor, w.room||'', '0', '', '']);
       }else{
-        list.forEach((s)=> rows.push([w.name, w.instructor, w.room||'', String(list.length), `${s.last}, ${s.first}`]));
+        list.forEach((s)=> rows.push([w.name, w.instructor, w.room||'', String(list.length), `${s.last}, ${s.first}`, s.school||'']));
       }
     });
     return rows.map(r=>r.map(esc).join(',')).join('\r\n');
@@ -1111,5 +1138,6 @@ try{
   showInitError(err && err.message ? err.message : String(err));
 }
 </script>
+
 </body>
 </html>
