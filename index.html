@@ -312,7 +312,7 @@ function showInitError(msg){
 }
 
 try{
-  // Global DnD guard
+  // Global DnD guard (preserves behavior outside dropzones)
   ['dragenter','dragover','drop'].forEach(evt=>{
     document.addEventListener(evt, e=>{
       if (e.target && e.target.closest && e.target.closest('.dropzone')) return;
@@ -376,8 +376,9 @@ try{
   let locked=false;
   let workshopList=[];
   let students=[];
-  let assignMap=new Map();
-  let unplaced=[];
+  let assignMap=new Map();   // id -> workshop name (seated only)
+  let assignedRows=[];       // seated rows for rendering/exports
+  let unplaced=[];           // not seated + reason
   let deletedStack=[];
 
   document.addEventListener('DOMContentLoaded',()=>{
@@ -399,7 +400,7 @@ try{
   const makeSeed=()=>{ try{const a=new Uint32Array(2);crypto.getRandomValues(a);return a[0]+'-'+a[1];}catch(_){return Date.now()+'-'+Math.floor(Math.random()*1e9)}};
   const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); console.log('Draw seed:',runSeed); };
 
-  // robust drop handlers (now also sync to input for Import buttons)
+  // robust drop handlers (kept from your layout; also syncs to <input>)
   function setDropHandlers({zone, onFile, input, acceptExts=['.csv']}){
     if(!zone) return;
     let dragDepth = 0;
@@ -444,7 +445,6 @@ try{
       const file=pickFile(e.dataTransfer);
       if(!file){ alert('No file found in drop. Please drop a CSV file.'); return; }
       if(!isAccepted(file)){ alert('Please drop a .csv file.'); return; }
-      // NEW: sync dropped file to file input so the Import button works
       if (input) {
         const dt = new DataTransfer();
         dt.items.add(file);
@@ -554,11 +554,8 @@ try{
   // Detect columns for Workshops CSV (supports headerless: [Instructor, Workshop, Room, Capacity])
   function detectWorkshopColumns(rows){
     if(!rows.length) return {wIdx:0,iIdx:1,cIdx:null,rIdx:null,startIdx:0};
-
     const hdr = rows[0].map(c => String(c ?? '').toLowerCase());
     const hasHeaderToken = (h)=> /(^|\b)(workshop|instructor|capacit|room|location|rm)(\b|$)/.test(h);
-
-    // Header present → map by names
     if (hdr.some(hasHeaderToken)) {
       const findIdx=(rxs)=> hdr.findIndex(h=>rxs.some(rx=>rx.test(h)));
       let wIdx=findIdx([/workshop/]),
@@ -571,8 +568,6 @@ try{
       if(rIdx===-1) rIdx=null;
       return {wIdx,iIdx,cIdx,rIdx,startIdx:1};
     }
-
-    // No header → assume [Instructor, Workshop, Room, Capacity]
     const first = rows[0] || [];
     const cols = first.length;
     const iIdx = cols > 0 ? 0 : null;
@@ -752,7 +747,6 @@ try{
       if(!rows.length){alert('No rows found in CSV.');return;}
       students=buildStudents(rows);
       if(students.length===0){alert('No student records detected.');return;}
-
       students.forEach(s=>{ s._issues = detectStudentIssues(s); });
 
       renderStudentsPreview(); enableRunIfReady();
@@ -787,7 +781,7 @@ try{
     if(legend) legend.classList.toggle('hidden', !anyIssues);
   }
 
-  // Assignment
+  // Assignment helpers
   function hash32(str){
     let h=2166136261>>>0;
     for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=(h>>>0)*16777619>>>0;}
@@ -805,6 +799,7 @@ try{
     });
   }
 
+  // *** FIXED CORE LOGIC: keep assignedRows (seated) and unplaced (not seated) ***
   function assignStudents(){
     const nameToIdx=new Map();
     workshopList.forEach((w,i)=>nameToIdx.set(key(w.name),i));
@@ -812,16 +807,19 @@ try{
     const cap=workshopList.map(w=>w.capacity);
     const fill=new Array(workshopList.length).fill(0);
     assignMap=new Map();
+    assignedRows=[];
     unplaced=[];
 
+    // Start with every student unassigned
     const unassigned = new Map(students.map(s=>[s.id,s]));
 
+    // three ranked passes
     function passAssign(rankIdx){
       const byWorkshop = new Map();
       for(const s of unassigned.values()){
         const choice = s.preferences[rankIdx] || '';
         const k = key(choice);
-        if(!choice || !nameToIdx.has(k)) continue;
+        if(!choice || !nameToIdx.has(k)) continue; // invalid/blank choice
         const idx = nameToIdx.get(k);
         if(!byWorkshop.has(idx)) byWorkshop.set(idx, []);
         byWorkshop.get(idx).push(s);
@@ -841,23 +839,37 @@ try{
 
     passAssign(0); passAssign(1); passAssign(2);
 
-    for(const s of [...unassigned.values()]){
-      let minFill = Infinity;
-      for (let i=0;i<workshopList.length;i++) if (fill[i] < cap[i]) minFill = Math.min(minFill, fill[i]);
-      const tied=[];
-      for (let i=0;i<workshopList.length;i++) if (fill[i] < cap[i] && fill[i]===minFill) tied.push(i);
-      if(tied.length>0){
-        const pick = tied[ hash32(String(s.id) + '|fallback|' + runSeed) % tied.length ];
-        assignMap.set(s.id, workshopList[pick].name);
-        unassigned.delete(s.id);
-        fill[pick]+=1;
+    // Build assignedRows from assignMap only (no blanks)
+    const roomByName = new Map(workshopList.map(w => [w.name, w.room || '']));
+    for(const s of students){
+      const assigned = assignMap.get(s.id);
+      if(assigned){
+        assignedRows.push({
+          last: s.last, first: s.first, school: s.school||'',
+          workshop: assigned, room: roomByName.get(assigned)||''
+        });
       }
     }
 
+    // Whoever is left unassigned becomes unplaced with a reason
+    const validNames = new Set(workshopList.map(w=>key(w.name)));
     for(const s of unassigned.values()){
-      const known = s.preferences.filter(p => nameToIdx.has(key(p)));
-      const reason = known.length===0 ? 'choices unknown' : 'no capacity remaining';
-      unplaced.push({id:s.id, last:s.last, first:s.first, school:s.school||'', preferences:s.preferences, reason});
+      const picks = s.preferences.map(p=>p||'');
+      const normalized = picks.map(p=>key(p)).filter(Boolean);
+      const unknowns = normalized.filter(p=>!validNames.has(p));
+      let reason = '';
+
+      if (s._issues && s._issues.length) {
+        reason = s._issues.join(', ');
+      }
+      if (!reason && normalized.length === 0) reason = 'No valid choices';
+      if (!reason && unknowns.length === normalized.length) reason = 'Unknown workshop name';
+      if (!reason) reason = 'All choices are full';
+
+      unplaced.push({
+        id:s.id, last:s.last, first:s.first, school:s.school||'',
+        preferences:picks, reason
+      });
     }
 
     return {fill};
@@ -868,11 +880,13 @@ try{
     if(students.length===0){alert('Load students first');return;}
     setRunSeed();
     const {fill}=assignStudents();
+    // Clear preview issues before report
     students.forEach(s=>{ delete s._issues; });
     renderReport(fill);
   };
   document.getElementById('resetAll').onclick=()=>location.reload();
 
+  // *** FIXED RENDERING: bind tables to assignedRows & unplaced ***
   function renderReport(fill){
     resultsCard.classList.remove('hidden');
     const totalCap=workshopList.reduce((a,w)=>a+w.capacity,0);
@@ -881,37 +895,34 @@ try{
     kvCapacity.textContent=String(totalCap);
     kvUnplaced.textContent=String(unplaced.length);
 
-    const roomByName = new Map(workshopList.map(w => [w.name, w.room || '']));
-
+    // Summary / balance table
     balanceTableBody.innerHTML='';
     const wsSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
     wsSorted.forEach(w=>{
-      const idx=workshopList.findIndex(x=>x.name===w.name&&x.instructor===w.instructor&&x.capacity===w.capacity&&x.room===w.room);
+      // compute assigned count from assignedRows for this workshop
+      const assignedCount = assignedRows.filter(r=>r.workshop===w.name).length;
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${w.instructor}</td><td>${w.name}</td><td>${w.capacity}</td><td>${fill[idx]}</td><td>${w.room||''}</td>`;
+      tr.innerHTML=`<td>${w.instructor}</td><td>${w.name}</td><td>${w.capacity}</td><td>${assignedCount}</td><td>${w.room||''}</td>`;
       balanceTableBody.appendChild(tr);
     });
 
-    // Student assignments
+    // Student assignments (seated only)
     studentTableBody.innerHTML='';
-    const stSorted=students.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
-    for(const s of stSorted){
-      const assigned=assignMap.get(s.id)||'';
-      const room=roomByName.get(assigned)||'';
+    const seatedSorted=assignedRows.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+    for(const r of seatedSorted){
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${s.school||''}</td><td>${assigned}</td><td>${room}</td>`;
+      tr.innerHTML=`<td>${r.last}</td><td>${r.first}</td><td>${r.school}</td><td>${r.workshop}</td><td>${r.room}</td>`;
       studentTableBody.appendChild(tr);
     }
 
-    // Workshop rosters (with school inline)
+    // Workshop rosters (from assignedRows only)
     const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
-    for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first, school:s.school||''});}
+    for(const r of assignedRows){ rosterMap.get(r.workshop).push({last:r.last, first:r.first, school:r.school}); }
 
     rosterDoc.innerHTML='';
     const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
     roSorted.forEach(w=>{
       const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
-
       const section=document.createElement('section');
       section.className='roster-section';
 
@@ -938,12 +949,12 @@ try{
       rosterDoc.appendChild(section);
     });
 
-    // Unplaced
+    // Unplaced table
     unplacedTableBody.innerHTML='';
     const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const u of unSorted){
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${u.last}</td><td>${u.first}</td><td>${u.school||''}</td><td>${u.preferences.join(' | ')}</td><td>${u.reason}</td>`;
+      tr.innerHTML=`<td>${u.last}</td><td>${u.first}</td><td>${u.school||''}</td><td>${(u.preferences||[]).join(' | ')}</td><td>${u.reason}</td>`;
       unplacedTableBody.appendChild(tr);
     }
   }
@@ -1016,7 +1027,7 @@ try{
     const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
     const rows = [['Workshop','Instructor','Room','Assigned count','Student','School']];
     const rosterMap = new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
-    for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first, school:s.school||''});}
+    for(const r of assignedRows){ rosterMap.get(r.workshop).push({last:r.last, first:r.first, school:r.school||''}); }
     const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
     roSorted.forEach(w=>{
       const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
