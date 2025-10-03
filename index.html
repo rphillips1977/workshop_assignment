@@ -52,7 +52,7 @@ table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--li
 #balanceTable th:nth-child(5),#balanceTable td:nth-child(5){white-space:nowrap}
 .row-issue td{background:#FFF7ED}
 .issues{display:flex;flex-wrap:wrap;gap:6px}
-.issue-pill{font-size:11px;padding:2px 8px;border-radius:999px;background:#FEF3C7;border:1px solid#FDE68A;color:#92400E}
+.issue-pill{font-size:11px;padding:2px 8px;border-radius:999px;background:#FEF3C7;border:1px solid #FDE68A;color:#92400E}
 .issue-legend{color:#6b7280;font-size:12px;margin-top:6px}
 #rosterDoc{display:flex;flex-direction:column;gap:12px}
 .roster-section{border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.02);overflow:hidden}
@@ -61,7 +61,7 @@ table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--li
 .name-grid{padding:8px 10px 12px 10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 24px}
 @media (max-width:900px){.name-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.name-grid{grid-template-columns:1fr}}
-.name{padding:2px 0;border-bottom:1px solid var(--line-soft);whitespace:nowrap;overflow:hidden;text-overflow:ellipsis}
+.name{padding:2px 0;border-bottom:1px solid var(--line-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .name:last-child{border-bottom:0}
 .nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
 .locknote{color:var(--muted);font-size:12px}
@@ -231,25 +231,28 @@ try{
 
   // ============ UTILITY FUNCTIONS ============
   
-  // Normalize text for comparison - handles apostrophes and special characters
-  function normalizeText(str) {
+  // Clean text for display and storage - fixes encoding issues
+  function cleanText(str) {
     if (!str) return '';
-    return str
-      .trim()
+    return str.trim()
       // Replace various apostrophe types with standard apostrophe
-      .replace(/[\u2019\u2018\u00B4\u0060\u02BC\uFF07]/g, "'")
+      .replace(/[\u2019\u2018\u00B4\u0060\u02BC\uFF07\u�]/g, "'")
       // Replace special question marks
-      .replace(/[\uFF1F]/g, "?")
+      .replace(/[\uFF1F\u�]/g, "?")
       // Normalize whitespace
-      .replace(/\s+/g, ' ')
-      // Convert to lowercase for case-insensitive comparison
-      .toLowerCase();
+      .replace(/\s+/g, ' ');
+  }
+  
+  // Normalize text for comparison (case-insensitive)
+  function normalizeForComparison(str) {
+    if (!str) return '';
+    return cleanText(str).toLowerCase();
   }
 
-  // Find workshop by normalized name
+  // Find workshop by name (case-insensitive, encoding-tolerant)
   function findWorkshopByName(name, workshopList) {
-    const normalized = normalizeText(name);
-    return workshopList.find(w => normalizeText(w.name) === normalized);
+    const normalized = normalizeForComparison(name);
+    return workshopList.find(w => normalizeForComparison(w.name) === normalized);
   }
 
   // Check if workshop name exists in list
@@ -389,9 +392,9 @@ try{
         const rows = parseCSV(evt.target.result);
         if (rows.length < 2) return alert('Workshop CSV must have at least a header and one row');
         const data = rows.slice(1).map(r => ({
-          instructor: r[1] || '',
-          name: r[0] || '',
-          room: r[2] || '',
+          name: cleanText(r[0] || ''),
+          instructor: cleanText(r[1] || ''),
+          room: cleanText(r[2] || ''),
           capacity: parseInt(r[3], 10) || 12
         })).filter(w => w.name.trim());
         if (!data.length) return alert('No valid workshops found in CSV');
@@ -484,21 +487,21 @@ try{
           const c3Idx = header.findIndex((h, i) => i > c2Idx && (h.includes('choice') || h.includes('academic workshop')));
           
           parsed = rows.slice(1).map(r => ({
-            lastName: r[lastIdx] || '',
-            firstName: r[firstIdx] || '',
-            school: schoolIdx >= 0 ? r[schoolIdx] || '' : '',
-            choice1: r[c1Idx] || '',
-            choice2: r[c2Idx] || '',
-            choice3: r[c3Idx] || ''
+            lastName: cleanText(r[lastIdx] || ''),
+            firstName: cleanText(r[firstIdx] || ''),
+            school: schoolIdx >= 0 ? cleanText(r[schoolIdx] || '') : '',
+            choice1: cleanText(r[c1Idx] || ''),
+            choice2: cleanText(r[c2Idx] || ''),
+            choice3: cleanText(r[c3Idx] || '')
           }));
         } else {
           parsed = rows.slice(1).map(r => ({
             lastName: '',
-            firstName: r[0] || '',
+            firstName: cleanText(r[0] || ''),
             school: '',
-            choice1: r[1] || '',
-            choice2: r[2] || '',
-            choice3: r[3] || ''
+            choice1: cleanText(r[1] || ''),
+            choice2: cleanText(r[2] || ''),
+            choice3: cleanText(r[3] || '')
           }));
         }
         
@@ -549,7 +552,7 @@ try{
       
       if (choices.length < 3) issues.push('Missing choice(s)');
       
-      const uniqueChoices = new Set(choices.map(c => normalizeText(c)));
+      const uniqueChoices = new Set(choices.map(c => normalizeForComparison(c)));
       if (uniqueChoices.size !== choices.length) issues.push('Duplicate choices');
       
       choices.forEach(c => {
@@ -589,7 +592,7 @@ try{
     
     const wsMap = new Map();
     workshops.forEach((w, i) => {
-      wsMap.set(normalizeText(w.name), {
+      wsMap.set(normalizeForComparison(w.name), {
         ...w,
         index: i,
         assigned: [],
@@ -604,7 +607,7 @@ try{
       let placed = false;
       for (let choice of [s.choice1, s.choice2, s.choice3]) {
         if (!choice.trim()) continue;
-        const ws = wsMap.get(normalizeText(choice));
+        const ws = wsMap.get(normalizeForComparison(choice));
         if (ws && ws.assigned.length < ws.slots) {
           ws.assigned.push(s);
           assignments.push({
@@ -621,7 +624,7 @@ try{
         const reasons = [];
         [s.choice1, s.choice2, s.choice3].forEach(c => {
           if (!c.trim()) return;
-          const ws = wsMap.get(normalizeText(c));
+          const ws = wsMap.get(normalizeForComparison(c));
           if (!ws) reasons.push(`"${c}" not found`);
           else if (ws.assigned.length >= ws.slots) reasons.push(`"${c}" full`);
         });
@@ -648,7 +651,7 @@ try{
     const balanceBody = $('balanceTable').querySelector('tbody');
     balanceBody.innerHTML = '';
     workshops.forEach(w => {
-      const ws = wsMap.get(normalizeText(w.name));
+      const ws = wsMap.get(normalizeForComparison(w.name));
       const assigned = ws ? ws.assigned.length : 0;
       const tr = document.createElement('tr');
       if (assigned > w.capacity) tr.className = 'row-issue';
@@ -664,10 +667,12 @@ try{
     
     const studentBody = $('studentTable').querySelector('tbody');
     studentBody.innerHTML = '';
-    assignments.sort((a, b) => {
-      const cmp = a.student.lastName.localeCompare(b.student.lastName);
-      return cmp !== 0 ? cmp : a.student.firstName.localeCompare(b.student.firstName);
-    }).forEach(a => {
+    const sortedAssignments = [...assignments].sort((a, b) => {
+      const lastCmp = a.student.lastName.localeCompare(b.student.lastName);
+      if (lastCmp !== 0) return lastCmp;
+      return a.student.firstName.localeCompare(b.student.firstName);
+    });
+    sortedAssignments.forEach(a => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${escHTML(a.student.lastName)}</td>
@@ -682,15 +687,16 @@ try{
     const rosterDoc = $('rosterDoc');
     rosterDoc.innerHTML = '';
     workshops.forEach(w => {
-      const ws = wsMap.get(normalizeText(w.name));
+      const ws = wsMap.get(normalizeForComparison(w.name));
       const assigned = ws ? ws.assigned : [];
-      const section = document.createElement('div');
-      section.className = 'roster-section';
-      const sorted = assigned.slice().sort((a, b) => {
-        const cmp = a.lastName.localeCompare(b.lastName);
-        return cmp !== 0 ? cmp : a.firstName.localeCompare(b.firstName);
+      const sec = document.createElement('div');
+      sec.className = 'roster-section';
+      const sorted = [...assigned].sort((a, b) => {
+        const lastCmp = a.lastName.localeCompare(b.lastName);
+        if (lastCmp !== 0) return lastCmp;
+        return a.firstName.localeCompare(b.firstName);
       });
-      section.innerHTML = `
+      sec.innerHTML = `
         <div class="roster-header">
           <div class="ws-name">${escHTML(w.name)}</div>
           <div class="instructor">${escHTML(w.instructor)}</div>
@@ -701,7 +707,7 @@ try{
           ${sorted.map(s => `<div class="name">${escHTML(s.lastName)}, ${escHTML(s.firstName)}</div>`).join('')}
         </div>
       `;
-      rosterDoc.appendChild(section);
+      rosterDoc.appendChild(sec);
     });
     
     const unplacedBody = $('unplacedTable').querySelector('tbody');
@@ -723,116 +729,12 @@ try{
   const tabs = ['Summary', 'Students', 'Rosters', 'Unplaced'];
   tabs.forEach(t => {
     $('tab' + t).onclick = () => {
-      tabs.forEach(t2 => {
-        $('tab' + t2).classList.toggle('active', t === t2);
-        $('panel' + t2).classList.toggle('hidden', t !== t2);
+      tabs.forEach(tt => {
+        $('tab' + tt).classList.toggle('active', tt === t);
+        $('panel' + tt).classList.toggle('hidden', tt !== t);
       });
     };
   });
-
-  // ============ PDF EXPORT ============
-  function exportPDF(elementId, filename) {
-    const el = $(elementId);
-    if (!el) return;
-    const opt = {
-      margin: 10,
-      filename: filename + '.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-    if (window.html2pdf) {
-      window.html2pdf().set(opt).from(el).save();
-    } else {
-      alert('PDF library not loaded');
-    }
-  }
-
-  $('printSummary').onclick = () => exportPDF('balanceTable', 'workshop-summary');
-  $('printAssignments').onclick = () => exportPDF('studentTable', 'student-assignments');
-  $('printRosters').onclick = () => exportPDF('rosterDoc', 'workshop-rosters');
-  $('printUnplaced').onclick = () => exportPDF('unplacedTable', 'unplaced-students');
-  $('printStudents').onclick = () => exportPDF('studentsTable', 'students-preview');
-
-  // ============ CSV EXPORT ============
-  function downloadCSV(data, filename) {
-    const csv = data.map(row =>
-      row.map(cell => {
-        const s = String(cell || '');
-        return s.includes(',') || s.includes('"') || s.includes('\n')
-          ? '"' + s.replace(/"/g, '""') + '"'
-          : s;
-      }).join(',')
-    ).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename + '.csv';
-    link.click();
-  }
-
-  $('exportSummaryCsv').onclick = () => {
-    const data = [['Instructor', 'Workshop', 'Capacity', 'Assigned', 'Room']];
-    workshops.forEach(w => {
-      const wsNorm = normalizeText(w.name);
-      const wsData = Array.from(document.querySelectorAll('#balanceTable tbody tr')).find(tr => {
-        const cells = tr.querySelectorAll('td');
-        return normalizeText(cells[1].textContent) === wsNorm;
-      });
-      const assigned = wsData ? wsData.querySelectorAll('td')[3].textContent : '0';
-      data.push([w.instructor, w.name, w.capacity, assigned, w.room]);
-    });
-    downloadCSV(data, 'workshop-summary');
-  };
-
-  $('exportAssignmentsCsv').onclick = () => {
-    const data = [['Last Name', 'First Name', 'School', 'Assigned Workshop', 'Room']];
-    assignments.forEach(a => {
-      data.push([a.student.lastName, a.student.firstName, a.student.school, a.workshop.name, a.workshop.room]);
-    });
-    downloadCSV(data, 'student-assignments');
-  };
-
-  $('exportRostersCsv').onclick = () => {
-    const data = [['Workshop', 'Instructor', 'Room', 'Capacity', 'Last Name', 'First Name']];
-    workshops.forEach(w => {
-      const wsNorm = normalizeText(w.name);
-      const assigned = assignments.filter(a => normalizeText(a.workshop.name) === wsNorm);
-      assigned.sort((a, b) => {
-        const cmp = a.student.lastName.localeCompare(b.student.lastName);
-        return cmp !== 0 ? cmp : a.student.firstName.localeCompare(b.student.firstName);
-      });
-      assigned.forEach(a => {
-        data.push([w.name, w.instructor, w.room, w.capacity, a.student.lastName, a.student.firstName]);
-      });
-    });
-    downloadCSV(data, 'workshop-rosters');
-  };
-
-  $('exportUnplacedCsv').onclick = () => {
-    const data = [['Last Name', 'First Name', 'School', 'Preferences', 'Reason']];
-    document.querySelectorAll('#unplacedTable tbody tr').forEach(tr => {
-      const cells = tr.querySelectorAll('td');
-      data.push([cells[0].textContent, cells[1].textContent, cells[2].textContent, cells[3].textContent, cells[4].textContent]);
-    });
-    downloadCSV(data, 'unplaced-students');
-  };
-
-  $('exportStudentsCsv').onclick = () => {
-    const data = [['Last Name', 'First Name', 'School', 'First Choice', 'Second Choice', 'Third Choice', 'Issues']];
-    students.forEach(s => {
-      const issues = [];
-      const choices = [s.choice1, s.choice2, s.choice3].filter(c => c.trim());
-      if (choices.length < 3) issues.push('Missing choice(s)');
-      const uniqueChoices = new Set(choices.map(c => normalizeText(c)));
-      if (uniqueChoices.size !== choices.length) issues.push('Duplicate choices');
-      choices.forEach(c => {
-        if (!workshopExists(c, workshops)) issues.push(`Unknown: "${c}"`);
-      });
-      data.push([s.lastName, s.firstName, s.school, s.choice1, s.choice2, s.choice3, issues.join('; ')]);
-    });
-    downloadCSV(data, 'students-preview');
-  };
 
   // ============ RESET ============
   $('resetAll').onclick = () => {
@@ -845,9 +747,12 @@ try{
     $('lockNote').classList.add('hidden');
     $('lockWorkshops').disabled = false;
     $('csvFile').disabled = true;
+    $('csvFile').value = '';
+    $('workshopCsvFile').value = '';
     $('studentDrop').classList.add('disabled');
     $('wkFieldset').disabled = false;
     $('numWorkshops').disabled = false;
+    $('numWorkshops').value = '0';
     $('buildWorkshopRows').disabled = false;
     $('addWorkshopRow').disabled = false;
     $('clearWorkshops').disabled = false;
@@ -859,9 +764,92 @@ try{
     renderWorkshops();
   };
 
-} catch(err) {
+  // ============ EXPORT FUNCTIONS ============
+  function exportToPDF(elementId, filename) {
+    const element = $(elementId);
+    if (!element || typeof html2pdf === 'undefined') return alert('PDF export not available');
+    const opt = {
+      margin: 10,
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+  }
+
+  function exportToCSV(rows, filename) {
+    const csv = rows.map(r => r.map(cell => {
+      const s = String(cell || '');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+    }).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+  }
+
+  $('printStudents').onclick = () => exportToPDF('studentsTable', 'students.pdf');
+  $('printSummary').onclick = () => exportToPDF('balanceTable', 'summary.pdf');
+  $('printAssignments').onclick = () => exportToPDF('studentTable', 'assignments.pdf');
+  $('printRosters').onclick = () => exportToPDF('rosterDoc', 'rosters.pdf');
+  $('printUnplaced').onclick = () => exportToPDF('unplacedTable', 'unplaced.pdf');
+
+  $('exportStudentsCsv').onclick = () => {
+    const rows = [['Last Name', 'First Name', 'School', 'First Choice', 'Second Choice', 'Third Choice']];
+    students.forEach(s => rows.push([s.lastName, s.firstName, s.school, s.choice1, s.choice2, s.choice3]));
+    exportToCSV(rows, 'students.csv');
+  };
+
+  $('exportSummaryCsv').onclick = () => {
+    const rows = [['Instructor', 'Workshop', 'Capacity', 'Assigned', 'Room']];
+    workshops.forEach(w => {
+      const ws = Array.from(assignments).filter(a => normalizeForComparison(a.workshop.name) === normalizeForComparison(w.name));
+      rows.push([w.instructor, w.name, w.capacity, ws.length, w.room]);
+    });
+    exportToCSV(rows, 'summary.csv');
+  };
+
+  $('exportAssignmentsCsv').onclick = () => {
+    const rows = [['Last Name', 'First Name', 'School', 'Assigned Workshop', 'Room']];
+    const sorted = [...assignments].sort((a, b) => {
+      const lastCmp = a.student.lastName.localeCompare(b.student.lastName);
+      if (lastCmp !== 0) return lastCmp;
+      return a.student.firstName.localeCompare(b.student.firstName);
+    });
+    sorted.forEach(a => rows.push([a.student.lastName, a.student.firstName, a.student.school, a.workshop.name, a.workshop.room]));
+    exportToCSV(rows, 'assignments.csv');
+  };
+
+  $('exportRostersCsv').onclick = () => {
+    const rows = [['Workshop', 'Instructor', 'Room', 'Capacity', 'Last Name', 'First Name']];
+    workshops.forEach(w => {
+      const ws = assignments.filter(a => normalizeForComparison(a.workshop.name) === normalizeForComparison(w.name));
+      const sorted = ws.map(a => a.student).sort((a, b) => {
+        const lastCmp = a.lastName.localeCompare(b.lastName);
+        if (lastCmp !== 0) return lastCmp;
+        return a.firstName.localeCompare(b.firstName);
+      });
+      sorted.forEach(s => rows.push([w.name, w.instructor, w.room, w.capacity, s.lastName, s.firstName]));
+    });
+    exportToCSV(rows, 'rosters.csv');
+  };
+
+  $('exportUnplacedCsv').onclick = () => {
+    const rows = [['Last Name', 'First Name', 'School', 'Preferences', 'Reason']];
+    const unplacedData = $('unplacedTable').querySelectorAll('tbody tr');
+    unplacedData.forEach(tr => {
+      const cells = Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim());
+      rows.push(cells);
+    });
+    exportToCSV(rows, 'unplaced.csv');
+  };
+
+  renderWorkshops();
+} catch (err) {
   showInitError(err.message);
-  console.error('Init error:', err);
+  console.error(err);
 }
 </script>
 </body>
