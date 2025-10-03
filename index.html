@@ -1,1 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Workshop Sorter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+:root{
+  --lsu-purple:#461D7C; --lsu-gold:#FDD023; --ink:#1f2430; --muted:#6b7280;
+  --line:#d1d5db; --line-soft:#e5e7eb; --bg:#fafafa; --card:#ffffff;
+  --brand-font: Inter, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --radius:14px; --radius-sm:10px; --shadow:0 1px 2px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--brand-font);line-height:1.4}
+.header{background:linear-gradient(90deg,var(--lsu-purple),#2d1252);color:#fff;padding:24px 16px}
+.wrap{max-width:1120px;margin:0 auto;padding:16px}
+.brand{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand .title{font-size:22px;letter-spacing:.2px}
+.card{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+label.small{font-size:12px;color:var(--muted)}
+select,input[type=file],input[type=text],input[type=number]{width:100%;padding:10px;border:1px solid var(--line-soft);border-radius:var(--radius-sm);background:#fff;transition:border-color .15s,box-shadow .15s}
+select:focus,input:focus{outline:0;border-color:var(--lsu-purple);box-shadow:0 0 0 3px rgba(70,29,124,.15)}
+input.invalid{border-color:#dc2626;background:#fff5f5}
+button{font-family:inherit;cursor:pointer;border-radius:12px;font-weight:600}
+button.primary{background:var(--lsu-gold);color:#3a2b00;border:0;padding:12px 18px}
+button.primary:hover{filter:brightness(.98)}
+button.primary:focus{outline:0;box-shadow:0 0 0 3px rgba(253,208,35,.35)}
+button.ghost{background:#fff;border:1px solid var(--line-soft);padding:10px 14px}
+.smallbtn{padding:8px 10px;border-radius:10px;border:1px solid var(--line-soft);background:#fff}
+button[disabled]{opacity:.55;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.five{display:grid;grid-template-columns:1fr 1fr 130px 120px 36px;gap:10px;align-items:center}
+.hidden{display:none}
+.badge{font-size:12px;padding:2px 8px;border:1px solid var(--line-soft);border-radius:999px;color:#6b7280}
+.note{color:var(--muted);font-size:12px}
+.tabs{display:flex;gap:8px;margin:8px 0 0}
+.tab{padding:8px 12px;border:1px solid var(--line-soft);border-bottom:0;border-radius:10px 10px 0 0;background:#f8fafc;cursor:pointer}
+.tab.active{background:#fff;border-color:var(--lsu-purple);color:#lsu-purple}
+.panel{border:1px solid var(--line-soft);border-radius:0 12px 12px 12px;background:#fff;padding:12px}
+
+/* drop zones */
+.dropzone{display:flex;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:12px;min-height:44px;color:#6b7280;background:#fff; user-select:none}
+.dropzone.drag{border-color:var(--lsu-purple);background:#faf5ff}
+.dropzone.disabled{opacity:.6;pointer-events:none}
+
+/* generic scrollbox */
+.scrollbox{
+  max-height:420px;
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+}
+
+/* tables */
+table{width:100%}
+table.report{
+  border-collapse:separate;border-spacing:0;border:1px solid var(--line);
+  border-radius:12px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.02);
+}
+.report thead th{
+  background:#f8fafc;font-weight:600;
+  position:sticky; top:0; z-index:1;
+}
+.report th,.report td{
+  padding:10px 12px;text-align:left;vertical-align:top;
+  border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);
+}
+.report th:last-child,.report td:last-child{border-right:0}
+.report tr:last-child td{border-bottom:0}
+
+/* Summary align */
+#balanceTable th:nth-child(3),#balanceTable td:nth-child(3),
+#balanceTable th:nth-child(4),#balanceTable td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
+#balanceTable th:nth-child(5),#balanceTable td:nth-child(5){white-space:nowrap}
+
+/* Step 2 issue highlighting */
+.row-issue td{ background:#FFF7ED; }
+
+/* Issues chips */
+.issues{ display:flex; flex-wrap:wrap; gap:6px; }
+.issue-pill{
+  font-size:11px; padding:2px 8px; border-radius:999px;
+  background:#FEF3C7; border:1px solid #FDE68A; color:#92400E;
+}
+.issue-legend{ color:#6b7280; font-size:12px; margin-top:6px }
+
+/* Rosters */
+#rosterDoc{ display:flex; flex-direction:column; gap:12px; }
+.roster-section{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 1px 0 rgba(0,0,0,.02);
+  overflow:hidden;
+}
+.roster-header{
+  background:#f3f4f6;
+  font-weight:800;
+  text-align:center;
+  font-size:16px;
+  padding:10px 12px;
+}
+.roster-header .ws-name{ font-weight:900 }
+.roster-header .instructor{ font-weight:800 }
+.roster-header .room{ color:#374151 }
+.roster-header .count{ font-weight:800; white-space:nowrap }
+.name-grid{
+  padding:8px 10px 12px 10px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:6px 24px;
+}
+@media (max-width: 900px){ .name-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px){ .name-grid{ grid-template-columns: 1fr; } }
+.name{
+  padding:2px 0;
+  border-bottom:1px solid var(--line-soft);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.name:last-child{ border-bottom:0 }
+
+.nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
+@media print{.header,.tabs,.printbar,.badge{display:none !important}}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+</head>
+<body>
+<noscript><div class="wrap"><div class="nojs">JavaScript is disabled. Turn it on to use Workshop Sorter.</div></div></noscript>
+
+<div class="header">
+  <div class="wrap brand"><div class="title">Workshop Sorter</div></div>
+</div>
+
+<div class="wrap" id="appRoot" aria-busy="true">
+  <!-- STEP 1 -->
+  <div class="card">
+    <div class="row" style="justify-content:space-between;align-items:flex-end">
+      <div>
+        <div class="badge">step 1 of 3</div>
+        <div style="margin-top:6px">Define workshops before loading students</div>
+      </div>
+      <div class="two" style="align-items:end;min-width:360px">
+        <div>
+          <label class="small">How many workshops (1–20)</label>
+          <select id="numWorkshops"><option value="0">Select count</option></select>
+        </div>
+        <button id="buildWorkshopRows" class="ghost">Create rows</button>
+      </div>
+    </div>
+    <div class="two" style="margin-top:10px">
+      <div>
+        <label class="small">Upload Workshops CSV (Instructor, Workshop, [Room], [Capacity])</label>
+        <input id="workshopCsvFile" type="file" accept=".csv">
+      </div>
+      <div id="workshopDrop" class="dropzone" tabindex="0" role="button" aria-label="Drop workshops CSV here or click to browse">Drag and drop Workshops CSV here</div>
+    </div>
+    <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
+      <button id="importWorkshopsBtn" class="ghost">Import workshops</button>
+      <button id="addWorkshopRow" class="smallbtn" title="Add a new row">Add workshop</button>
+      <button id="undoDelete" class="smallbtn" title="Undo last delete" disabled>Undo delete</button>
+      <button id="clearWorkshops" class="smallbtn">Clear all</button>
+    </div>
+    <fieldset id="wkFieldset" style="margin-top:10px;border:0;padding:0"><div id="wkContainer"></div></fieldset>
+    <div id="wkErrors" class="helper hidden"></div>
+    <div class="row" style="justify-content:space-between;margin-top:8px">
+      <div class="locknote hidden" id="lockNote">Workshops are locked. Click Reset all in Step 3 to start over.</div>
+      <button id="lockWorkshops" class="primary">Lock workshops and continue</button>
+    </div>
+    <div class="note" style="margin-top:6px">Capacity and Room import from CSV if present. Capacity defaults to 12 if blank.</div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card">
+    <div class="badge">step 2 of 3</div>
+    <div style="margin-top:6px">Load students with three ranked choices</div>
+    <div class="two">
+      <div>
+        <label class="small">
+          Upload CSV with columns: Last, First, School, Choice1, Choice2, Choice3
+          <br>(Also supports legacy “Student, Choice1, Choice2, Choice3”)
+        </label>
+        <input id="csvFile" type="file" accept=".csv" disabled>
+      </div>
+      <div id="studentDrop" class="dropzone disabled" tabindex="0" role="button" aria-label="Drop students CSV here or click to browse">Drag and drop Student CSV here</div>
+    </div>
+
+    <div id="studentsPreview" class="hidden" style="margin-top:10px">
+      <div class="badge">loaded students</div>
+      <div class="scrollbox">
+        <table id="studentsTable" class="report">
+          <thead>
+            <tr>
+              <th>Last Name</th><th>First Name</th><th>School</th>
+              <th>First Choice</th><th>Second Choice</th><th>Third Choice</th><th>Issues</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="issueLegend" class="issue-legend hidden">
+        Issues show the reason a student is flagged. Examples: Missing one or more choices, Duplicate choices, Unknown workshop name.
+      </div>
+      <div class="printbar" style="margin-top:8px">
+        <button id="printStudents" class="ghost">Export students (PDF)</button>
+        <button id="exportStudentsCsv" class="ghost">Export students (.csv)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="card">
+    <div class="badge">step 3 of 3</div>
+    <div style="margin-top:6px">Run assignment and review the report</div>
+    <div class="row" style="gap:12px">
+      <button id="runBtn" class="primary" disabled>Run assignment</button>
+      <button id="resetAll" class="ghost">Reset all</button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="resultsCard" class="card hidden">
+    <div class="tabs">
+      <div id="tabSummary" class="tab active">Summary</div>
+      <div id="tabStudents" class="tab">Student assignments</div>
+      <div id="tabRosters" class="tab">Workshop rosters</div>
+      <div id="tabUnplaced" class="tab">Unplaced students</div>
+    </div>
+    <div class="panel">
+      <div id="panelSummary">
+        <div class="kv" style="display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:8px">
+          <div>Total students: <span id="kvStudents"></span></div>
+          <div>Total workshops: <span id="kvWorkshops"></span></div>
+          <div>Total capacity: <span id="kvCapacity"></span></div>
+          <div>Unplaced: <span id="kvUnplaced"></span></div>
+        </div>
+        <table id="balanceTable" class="report">
+          <colgroup>
+            <col style="width:28%"><col style="width:34%"><col style="width:12%"><col style="width:12%"><col style="width:14%">
+          </colgroup>
+          <thead><tr><th>Instructor</th><th>Workshop</th><th>Capacity</th><th>Assigned</th><th>Room</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="printbar">
+          <button id="printSummary" class="ghost">Export summary (PDF)</button>
+          <button id="exportSummaryCsv" class="ghost">Export summary (.csv)</button>
+        </div>
+      </div>
+
+      <div id="panelStudents" class="hidden">
+        <div class="scrollbox">
+          <table id="studentTable" class="report">
+            <thead><tr><th>Last Name</th><th>First Name</th><th>School</th><th>Assigned workshop</th><th>Room</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="printbar">
+          <button id="printAssignments" class="ghost">Export assignments (PDF)</button>
+          <button id="exportAssignmentsCsv" class="ghost">Export assignments (.csv)</button>
+        </div>
+      </div>
+
+      <div id="panelRosters" class="hidden">
+        <div class="scrollbox"><div id="rosterDoc"></div></div>
+        <div class="printbar">
+          <button id="printRosters" class="ghost">Export rosters (PDF)</button>
+          <button id="exportRostersCsv" class="ghost">Export rosters (.csv)</button>
+        </div>
+      </div>
+
+      <div id="panelUnplaced" class="hidden">
+        <div class="scrollbox">
+          <table id="unplacedTable" class="report">
+            <thead><tr><th>Last Name</th><th>First Name</th><th>School</th><th>Preference</th><th>Reason</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="printbar">
+          <button id="printUnplaced" class="ghost">Export unplaced (PDF)</button>
+          <button id="exportUnplacedCsv" class="ghost">Export unplaced (.csv)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showInitError(msg){
+  try{
+    const root=document.getElementById('appRoot');
+    if(!root) return;
+    const d=document.createElement('div');
+    d.className='nojs';
+    d.textContent='There was an error initializing the app: ' + (msg||'unknown error');
+    root.prepend(d);
+  }catch(_){}
+}
+
+try{
+  /* ---------- Guard page-level DnD ---------- */
+  ['dragenter','dragover','drop'].forEach(evt=>{
+    document.addEventListener(evt, e=>{
+      if (e.target && e.target.closest && e.target.closest('.dropzone')) return;
+      e.preventDefault();
+      if (e.dataTransfer && evt!=='drop') e.dataTransfer.dropEffect = 'none';
+    }, {passive:false});
+  });
+
+  /* ---------- DOM ---------- */
+  const numWorkshops=document.getElementById('numWorkshops');
+  const buildWorkshopRows=document.getElementById('buildWorkshopRows');
+  const workshopCsvFile=document.getElementById('workshopCsvFile');
+  const workshopDrop=document.getElementById('workshopDrop');
+  const importWorkshopsBtn=document.getElementById('importWorkshopsBtn');
+  const addWorkshopRowBtn=document.getElementById('addWorkshopRow');
+  const undoDeleteBtn=document.getElementById('undoDelete');
+  const wkFieldset=document.getElementById('wkFieldset');
+  const wkContainer=document.getElementById('wkContainer');
+  const wkErrors=document.getElementById('wkErrors');
+  const lockWorkshops=document.getElementById('lockWorkshops');
+  const clearWorkshops=document.getElementById('clearWorkshops');
+  const lockNote=document.getElementById('lockNote');
+  const csvFile=document.getElementById('csvFile');
+  const studentDrop=document.getElementById('studentDrop');
+  const resultsCard=document.getElementById('resultsCard');
+  const tabSummary=document.getElementById('tabSummary');
+  const tabStudents=document.getElementById('tabStudents');
+  const tabRosters=document.getElementById('tabRosters');
+  const tabUnplaced=document.getElementById('tabUnplaced');
+  const panelSummary=document.getElementById('panelSummary');
+  const panelStudents=document.getElementById('panelStudents');
+  const panelRosters=document.getElementById('panelRosters');
+  const panelUnplaced=document.getElementById('panelUnplaced');
+  const kvStudents=document.getElementById('kvStudents');
+  const kvWorkshops=document.getElementById('kvWorkshops');
+  const kvCapacity=document.getElementById('kvCapacity');
+  const kvUnplaced=document.getElementById('kvUnplaced');
+  const balanceTableBody=document.querySelector('#balanceTable tbody');
+  const studentTableBody=document.querySelector('#studentTable tbody');
+  const rosterDoc=document.getElementById('rosterDoc');
+  const unplacedTableBody=document.querySelector('#unplacedTable tbody');
+  const studentsPreview=document.getElementById('studentsPreview');
+  const studentsTableBody=document.querySelector('#studentsTable tbody');
+  const runBtn=document.getElementById('runBtn');
+  const printStudentsBtn=document.getElementById('printStudents');
+  const exportStudentsCsvBtn=document.getElementById('exportStudentsCsv');
+  const printSummaryBtn=document.getElementById('printSummary');
+  const exportSummaryCsvBtn=document.getElementById('exportSummaryCsv');
+  const printAssignmentsBtn=document.getElementById('printAssignments');
+  const exportAssignmentsCsvBtn=document.getElementById('exportAssignmentsCsv');
+  const printRostersBtn=document.getElementById('printRosters');
+  const exportRostersCsvBtn=document.getElementById('exportRostersCsv');
+  const printUnplacedBtn=document.getElementById('printUnplaced');
+  const exportUnplacedCsvBtn=document.getElementById('exportUnplacedCsv');
+
+  if(!numWorkshops || !buildWorkshopRows || !wkContainer){ showInitError('Missing core DOM nodes.'); throw new Error('missing anchors'); }
+
+  /* ---------- State ---------- */
+  let locked=false;
+  let workshopList=[];  // {name, instructor, room, capacity}
+  let students=[];      // {id,last,first,school,label,preferences}
+  let assignMap=new Map();   // id -> workshop name (seated only)
+  let assignedRows=[];       // seated rows for rendering/exports
+  let unplaced=[];           // not seated + reason
+  let deletedStack=[];
+  let canonMap=new Map();    // canonicalName -> workshop index (built after lock)
+
+  document.addEventListener('DOMContentLoaded',()=>{for(let i=1;i<=20;i++){const o=document.createElement('option');o.value=o.textContent=String(i);numWorkshops.appendChild(o);} document.getElementById('appRoot')?.setAttribute('aria-busy','false');});
+
+  /* ---------- Normalization ---------- */
+  const normalize=(s)=> String(s ?? '').replace(/^\uFEFF/,'').trim();
+  const squeeze=(s)=> s.replace(/\s+/g,' ').trim();
+
+  // Strong canonicalization for matching
+  function canonical(s){
+    let t = normalize(s).toLowerCase();
+
+    // kill subtitle after ":" (students often omit subtitles)
+    t = t.replace(/\s*:\s*.*$/,'');
+
+    // unify punctuation & symbols
+    t = t.replace(/[’‘]/g,"'").replace(/[“”]/g,'"').replace(/[()]/g,' ').replace(/&/g,' and ').replace(/[._,/]/g,' ');
+
+    // special phrase unifier
+    t = t.replace(/\bcyber\s*security\b/g,'cybersecurity');
+
+    // remove filler/stopwords
+    t = t.replace(/\b(the|of|your|for|and|in|at|on|to|with|a|an)\b/g,' ');
+
+    // collapse spaces & trim
+    t = squeeze(t);
+
+    // tiny stemming (design/designing → design)
+    t = t.replace(/\b(\w+?)ing\b/g,'$1');
+
+    return t;
+  }
+
+  function buildCanonMap(){
+    canonMap.clear();
+    workshopList.forEach((w,i)=>{
+      const cMain = canonical(w.name);
+      canonMap.set(cMain, i);
+      // also add variant without dashes
+      canonMap.set(cMain.replace(/-/g,' '), i);
+    });
+  }
+
+  function findWorkshopIndexByName(name){
+    if(!name) return -1;
+    const c = canonical(name);
+    if (canonMap.has(c)) return canonMap.get(c);
+    const alt = c.replace(/-/g,' ');
+    if (canonMap.has(alt)) return canonMap.get(alt);
+
+    // lightweight fuzzy: Jaccard on tokens (threshold 0.6)
+    const t = new Set(c.split(' ').filter(Boolean));
+    let best = {idx:-1,score:0};
+    for(const [cKey, idx] of canonMap){
+      const u = new Set(cKey.split(' ').filter(Boolean));
+      let inter=0; for(const x of t){ if(u.has(x)) inter++; }
+      const uni = new Set([...t,...u]).size || 1;
+      const score = inter/uni;
+      if(score>best.score) best={idx,score};
+    }
+    return best.score>=0.6 ? best.idx : -1;
+  }
+
+  const enableRunIfReady=()=>{ runBtn.disabled=!(locked && students.length>0); };
+
+  /* ---------- Drop handlers ---------- */
+  function setDropHandlers({zone, onFile, input, acceptExts=['.csv']}){
+    if(!zone) return;
+    let dragDepth = 0;
+    const isDisabled = ()=> zone.classList.contains('disabled') || zone.hasAttribute('aria-disabled');
+    const highlight  = ()=>{ if(!isDisabled()) zone.classList.add('drag'); };
+    const unhighlight= ()=> zone.classList.remove('drag');
+    const openPicker = ()=>{ if(input && !isDisabled()){ input.click(); } };
+    zone.addEventListener('click', openPicker);
+    zone.addEventListener('keydown', (e)=>{ if((e.key==='Enter'||e.key===' ') && !isDisabled()){ e.preventDefault(); openPicker(); } });
+    const pickFile = (dt)=> dt?.files?.[0] || null;
+    const isAccepted = (file)=> acceptExts.some(ext => (file?.name||'').toLowerCase().endsWith(ext));
+    zone.addEventListener('dragenter', (e)=>{ if(isDisabled()) return; e.preventDefault(); dragDepth++; highlight(); }, {passive:false});
+    zone.addEventListener('dragover',  (e)=>{ if(isDisabled()) return; e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='copy'; }, {passive:false});
+    zone.addEventListener('dragleave', (e)=>{ if(isDisabled()) return; e.preventDefault(); dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0) unhighlight(); }, {passive:false});
+    zone.addEventListener('drop',      (e)=>{ if(isDisabled()) return; e.preventDefault(); dragDepth=0; unhighlight(); const f=pickFile(e.dataTransfer); if(!f){ alert('Drop a .csv file.'); return; } if(!isAccepted(f)){ alert('Please drop a .csv file.'); return; } if(input){ const dt=new DataTransfer(); dt.items.add(f); input.files=dt.files; } onFile(f); }, {passive:false});
+  }
+
+  function setWorkshopControlsEnabled(enabled){
+    numWorkshops.disabled=!enabled;
+    buildWorkshopRows.disabled=!enabled;
+    addWorkshopRowBtn.disabled=!enabled;
+    importWorkshopsBtn.disabled=!enabled;
+    workshopCsvFile.disabled=!enabled;
+    workshopDrop?.classList.toggle('disabled',!enabled);
+    undoDeleteBtn.disabled=!enabled || deletedStack.length===0;
+    clearWorkshops.disabled=!enabled;
+  }
+
+  /* ---------- Build manual grid ---------- */
+  buildWorkshopRows.onclick=()=>{
+    const n=parseInt(numWorkshops.value,10);
+    if(!n||n<1||n>20){alert('Choose 1 to 20 workshops');return;}
+    renderWorkshopGrid(n);
+  };
+
+  function ensureHeader(){
+    if(!wkContainer.querySelector('.wkHeader')){
+      const header=document.createElement('div');
+      header.className='wkHeader';
+      header.innerHTML=`<div class="five" style="font-size:12px;color:#6b7280;margin-bottom:6px">
+        <div>Instructor</div><div>Workshop name</div><div>Capacity</div><div>Room (optional)</div><div></div></div>`;
+      wkContainer.appendChild(header);
+    }
+  }
+  function newRow({instructor='',name='',capacity='12',room=''}={}){
+    const row=document.createElement('div');
+    row.className='five wkRow';
+    row.innerHTML=`<input type="text" class="wkInstructor" placeholder="Instructor name" value="${instructor}">
+      <input type="text" class="wkName" placeholder="Workshop" value="${name}">
+      <input type="number" class="wkCap" min="1" value="${capacity}">
+      <input type="text" class="wkRoom" placeholder="e.g., BH 101 (optional)" value="${room}">
+      <button type="button" class="smallbtn wkDel" title="Delete this row">×</button>`;
+    wkContainer.appendChild(row);
+  }
+  function renderWorkshopGrid(n){
+    wkContainer.innerHTML="";
+    ensureHeader();
+    deletedStack=[]; updateUndoState();
+    for(let i=0;i<n;i++) newRow({capacity:''});
+  }
+  addWorkshopRowBtn.onclick=()=>{ if(locked) return; ensureHeader(); newRow(); };
+
+  wkContainer.addEventListener('click',(e)=>{
+    const btn=e.target.closest?.('.wkDel'); if(!btn || locked) return;
+    const row=btn.closest('.wkRow'); if(!row) return;
+    const fields=row.querySelectorAll('input');
+    const data={ instructor: fields[0]?.value||'', name: fields[1]?.value||'', capacity: fields[2]?.value||'12', room: fields[3]?.value||'' };
+    const rows=[...wkContainer.querySelectorAll('.wkRow')];
+    const index=rows.indexOf(row);
+    deletedStack.push({data,index});
+    row.remove();
+    updateUndoState();
+  });
+  function updateUndoState(){ undoDeleteBtn.disabled = locked || deletedStack.length===0; }
+  undoDeleteBtn.onclick=()=>{
+    if(locked||deletedStack.length===0) return;
+    ensureHeader();
+    const {data,index}=deletedStack.pop();
+    const rows=[...wkContainer.querySelectorAll('.wkRow')];
+    const marker = rows[index] || null;
+    const row=document.createElement('div');
+    row.className='five wkRow';
+    row.innerHTML=`<input type="text" class="wkInstructor" placeholder="Instructor name" value="${data.instructor}">
+      <input type="text" class="wkName" placeholder="Workshop" value="${data.name}">
+      <input type="number" class="wkCap" min="1" value="${data.capacity || '12'}">
+      <input type="text" class="wkRoom" placeholder="e.g., BH 101 (optional)" value="${data.room}">
+      <button type="button" class="smallbtn wkDel" title="Delete this row">×</button>`;
+    if(marker){ wkContainer.insertBefore(row, marker); } else { wkContainer.appendChild(row); }
+    updateUndoState();
+  };
+
+  clearWorkshops.onclick=()=>{
+    wkContainer.innerHTML=""; numWorkshops.value="0"; wkErrors.classList.add('hidden');
+    enableStudentsSection(false); locked=false; wkFieldset.classList.remove('locked'); lockNote.classList.add('hidden');
+    setWorkshopControlsEnabled(true); lockWorkshops.textContent='Lock workshops and continue'; lockWorkshops.disabled=false;
+    document.querySelectorAll('.wkInstructor,.wkName,.wkCap,.wkRoom,.wkDel').forEach(el=>{ if('disabled' in el) el.disabled=false; });
+    deletedStack=[]; updateUndoState(); enableRunIfReady();
+  };
+
+  /* ---------- CSV helpers ---------- */
+  function splitCSV(line){
+    const out=[], re=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g; let m;
+    while((m=re.exec(line))){ out.push(m[1]?m[1].replace(/""/g,'"'):m[2]); if(!m[3]) break; }
+    return out;
+  }
+  function parseCSV(text){
+    const lines=text.split(/\r?\n/).map(s=>s.replace(/^\uFEFF/, '').trim()).filter(Boolean);
+    const rows=[]; for(const l of lines) rows.push(splitCSV(l).map(c=>c.trim())); return rows;
+  }
+  const extractInt=(str)=>{ if(str==null) return null; const m=String(str).match(/-?\d+/); if(!m) return null; const n=parseInt(m[0],10); return Number.isFinite(n)?n:null; };
+
+  /* ---------- Workshops import ---------- */
+  function detectWorkshopColumns(rows){
+    if(!rows.length) return {wIdx:0,iIdx:1,cIdx:null,rIdx:null,startIdx:0};
+    const normHdr = (h)=> String(h||'').toLowerCase().replace(/[^a-z0-9# ]+/g,' ').replace(/\s+/g,' ').trim();
+    const hdr = rows[0].map(normHdr);
+    const hasHeaderToken = (h)=> /\b(workshop|title|session|instructor|teacher|presenter|room|location|cap|seats|size|max|#)\b/.test(h);
+    if (hdr.some(hasHeaderToken)) {
+      const findIdx=(rx)=> hdr.findIndex(h=>rx.test(h));
+      let wIdx=findIdx(/\b(workshop|title|session|class)\b/),
+          iIdx=findIdx(/\b(instructor|teacher|presenter)\b/),
+          cIdx=findIdx(/\b(cap|seats|size|max|#)\b/),
+          rIdx=findIdx(/\b(room|location|rm)\b/);
+      if(wIdx===-1) wIdx=(iIdx===0?1:0);
+      if(iIdx===-1) iIdx=(wIdx===0?1:0);
+      if(cIdx===-1) cIdx=null;
+      if(rIdx===-1) rIdx=null;
+      return {wIdx,iIdx,cIdx,rIdx,startIdx:1};
+    }
+    const first = rows[0] || [];
+    const cols = first.length;
+    return { iIdx:0, wIdx:1, rIdx:(cols>2?2:null), cIdx:(cols>3?3:null), startIdx:0 };
+  }
+
+  async function importWorkshopsFromFile(file){
+    try{
+      const fname=(file?.name||'').toLowerCase();
+      if(!fname.endsWith('.csv')){alert('Please use a .csv file for workshops (not .xlsx).');return;}
+      const text=await file.text();
+      const rows=parseCSV(text);
+      if(rows.length===0){alert('No rows found');return;}
+
+      const {wIdx,iIdx,cIdx,rIdx,startIdx}=detectWorkshopColumns(rows);
+      const seen=new Map();
+
+      for(let i=startIdx;i<rows.length;i++){
+        const row = rows[i] || [];
+        const rawW = row[wIdx] ?? '';
+        const rawI = row[iIdx] ?? '';
+        const rawC = cIdx!=null ? row[cIdx] : '';
+        const rawR = rIdx!=null ? row[rIdx] : '';
+
+        const name = squeeze(normalize(rawW));
+        const instructor = squeeze(normalize(rawI));
+        const room = squeeze(normalize(rawR || ''));
+        const capNum = extractInt(rawC);
+        let capacity = '12';
+        if(Number.isFinite(capNum) && capNum > 0) capacity = String(capNum);
+
+        if (!name && !instructor) continue;
+        if (!name) continue;
+
+        const k = canonical(name) + '|' + canonical(instructor);
+        if(!seen.has(k)) seen.set(k,{name,instructor,capacity,room});
+      }
+
+      const unique=[...seen.values()];
+      if(unique.length===0){alert('No workshop names found');return;}
+      unique.sort((a,b)=>a.name.localeCompare(b.name) || a.instructor.localeCompare(b.instructor));
+
+      wkContainer.innerHTML=""; ensureHeader(); deletedStack=[]; updateUndoState();
+      unique.forEach(row=>newRow(row));
+      document.querySelectorAll('.wkCap').forEach(el=>{ if(!String(el.value).trim()) el.value='12'; });
+      wkErrors.classList.add('hidden');
+    }catch(e){console.error(e);alert('Could not read workshops CSV.');}
+  }
+
+  importWorkshopsBtn.onclick=()=>{ const f=workshopCsvFile.files?.[0]; if(!f){alert('Choose a workshops CSV file first');return;} importWorkshopsFromFile(f); };
+  workshopCsvFile.addEventListener('change', ()=>{ const f=workshopCsvFile.files?.[0]; if(f) importWorkshopsFromFile(f); });
+  setDropHandlers({zone: workshopDrop, onFile: importWorkshopsFromFile, input: workshopCsvFile, acceptExts:['.csv']});
+
+  /* ---------- Lock workshops ---------- */
+  lockWorkshops.onclick=()=>{
+    const names=[...document.querySelectorAll('.wkName')],
+          caps=[...document.querySelectorAll('.wkCap')],
+          instr=[...document.querySelectorAll('.wkInstructor')],
+          rooms=[...document.querySelectorAll('.wkRoom')];
+    if(names.length===0){alert('Create or import workshop rows first');return;}
+    wkErrors.classList.add('hidden');
+    let hasError=false;
+    const seen=new Set();
+    workshopList=[];
+    for(let i=0;i<names.length;i++){
+      const name=squeeze(normalize(names[i].value)),
+            capStr=caps[i].value.trim(),
+            ins=squeeze(normalize(instr[i].value)),
+            room=squeeze(normalize(rooms[i].value));
+      let cap=extractInt(capStr);
+      [names[i],caps[i],instr[i],rooms[i]].forEach(e=>e.classList.remove('invalid'));
+      if(!name){names[i].classList.add('invalid');hasError=true;}
+      if(!ins){instr[i].classList.add('invalid');hasError=true;}
+      if(!Number.isFinite(cap)||cap<1){cap=12;}
+      const k=canonical(name)+'|'+canonical(ins);
+      if(seen.has(k)){names[i].classList.add('invalid');hasError=true;}
+      seen.add(k);
+      workshopList.push({room,name,instructor:ins,capacity:cap});
+    }
+    if(hasError){wkErrors.textContent='Please fix highlighted fields.';wkErrors.classList.remove('hidden');return;}
+
+    workshopList.sort((a,b)=>a.name.localeCompare(b.name) || a.instructor.localeCompare(b.instructor));
+    document.querySelectorAll('.wkInstructor,.wkName,.wkCap,.wkRoom,.wkDel').forEach(el=>{ if('disabled' in el) el.disabled=true; });
+    wkFieldset.classList.add('locked'); lockNote.classList.remove('hidden');
+
+    locked=true; setWorkshopControlsEnabled(false);
+    lockWorkshops.textContent='Workshops locked'; lockWorkshops.disabled=true;
+
+    buildCanonMap();          // <<< build canonical name map for robust matching
+    enableStudentsSection(true); enableRunIfReady();
+  };
+  function enableStudentsSection(enable){
+    if(csvFile) csvFile.disabled=!enable;
+    studentDrop?.classList.toggle('disabled',!enable);
+    if(enable){ studentDrop.setAttribute('tabindex','0'); } else { studentDrop.removeAttribute('tabindex'); }
+  }
+
+  /* ---------- Students ---------- */
+  function detectStudentColumns(rows){
+    const hdrRaw = rows[0] || [];
+    const nrm = (h)=> String(h||'').toLowerCase().replace(/^\uFEFF/,'').replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+
+    const hdr = hdrRaw.map(nrm);
+    const find = (fn)=> hdr.findIndex(fn);
+
+    // Legacy "Student, Choice1, Choice2, Choice3"
+    if(hdr.some(h=>h.includes('student'))){
+      const schoolIdx = find(h=>/\bschool\b|\bhigh school\b|\bcampus\b|\bhs\b/.test(h));
+      return {mode:'legacy', start:1, student: find(h=>/\bstudent\b/.test(h)),
+              school: schoolIdx===-1?null:schoolIdx,
+              c1: find(h=>/\b(choice 1|choice1|first choice|1st choice|preference 1)\b/.test(h)) ?? 1,
+              c2: find(h=>/\b(choice 2|choice2|second choice|2nd choice|preference 2)\b/.test(h)) ?? 2,
+              c3: find(h=>/\b(choice 3|choice3|third choice|3rd choice|preference 3)\b/.test(h)) ?? 3};
+    }
+
+    // Modern Last, First, School, Choice1, Choice2, Choice3
+    const last = find(h=>/\b(last|last name|surname)\b/.test(h));
+    const first = find(h=>/\b(first|first name|given)\b/.test(h));
+    const school = find(h=>/\b(school|high school|school name|campus|hs)\b/.test(h));
+    const c1 = find(h=>/\b(choice 1|choice1|first choice|1st choice|preference 1)\b/.test(h));
+    const c2 = find(h=>/\b(choice 2|choice2|second choice|2nd choice|preference 2)\b/.test(h));
+    const c3 = find(h=>/\b(choice 3|choice3|third choice|3rd choice|preference 3)\b/.test(h));
+
+    const anyKnown = [last,first,school,c1,c2,c3].some(i=>i!==-1);
+    if(anyKnown){
+      return {
+        mode:'modern', start:1,
+        last: last!==-1?last:0,
+        first: first!==-1?first:1,
+        school: school!==-1?school:null,
+        c1: c1!==-1?c1: (school!==-1?school+1:2),
+        c2: c2!==-1?c2: (school!==-1?school+2:3),
+        c3: c3!==-1?c3: (school!==-1?school+3:4),
+      };
+    }
+
+    // Fallback to fixed positions
+    return {mode:'fallback', start:1, last:0, first:1, school:2, c1:3, c2:4, c3:5};
+  }
+
+  function buildStudents(rows){
+    const list=[];
+    const map = detectStudentColumns(rows);
+    const startIdx = map.start || 0;
+
+    for(let i=startIdx;i<rows.length;i++){
+      const r = rows[i] || [];
+      let last='', first='', school='', picks=[];
+      if(map.mode==='legacy'){
+        const label = normalize(r[map.student]||''); if(!label) continue;
+        const m = label.match(/^\s*([^,]+)\s*,\s*(.+)\s*$/);
+        if(m){ last=squeeze(normalize(m[1])); first=squeeze(normalize(m[2])); } else { last=squeeze(label); first=''; }
+        school = map.school!=null ? squeeze(normalize(r[map.school]||'')) : '';
+        picks=[normalize(r[map.c1]||''), normalize(r[map.c2]||''), normalize(r[map.c3]||'')].map(squeeze);
+      }else{
+        last=squeeze(normalize(r[map.last]||r[0]||'')); first=squeeze(normalize(r[map.first]||r[1]||'')); if(!last && !first) continue;
+        school = map.school!=null ? squeeze(normalize(r[map.school]||'')) : '';
+        picks=[normalize(r[map.c1]||r[2]||''), normalize(r[map.c2]||r[3]||''), normalize(r[map.c3]||r[4]||'')].map(squeeze);
+      }
+      const label = last ? (first ? `${last}, ${first}` : last) : first;
+      const id = label + '##' + i;
+      list.push({ id, last, first, school, label, preferences:[picks[0]||'',picks[1]||'',picks[2]||''] });
+    }
+    return list;
+  }
+
+  function detectStudentIssues(s){
+    const issues=[];
+    const picks = s.preferences.map(p=>squeeze(normalize(p)));
+    if(picks.some(p=>!p)) issues.push('Missing one or more choices');
+
+    // duplicates (after canonicalization)
+    const cset = picks.filter(Boolean).map(canonical);
+    if(new Set(cset).size < cset.length) issues.push('Duplicate choices');
+
+    // unknowns
+    const unknown = picks.filter(p=>p && findWorkshopIndexByName(p)===-1);
+    if(unknown.length) issues.push('Unknown workshop name');
+
+    return issues;
+  }
+
+  async function importStudentsFromFile(file){
+    try{
+      const name=(file?.name||'').toLowerCase();
+      if(!name.endsWith('.csv')){alert('Please use a .csv file (not .xlsx).');return;}
+      const text=await file.text();
+      if(!text.trim()){alert('This CSV looks empty.');return;}
+      const rows=parseCSV(text);
+      if(!rows.length){alert('No rows found in CSV.');return;}
+      students=buildStudents(rows);
+      if(students.length===0){alert('No student records detected.');return;}
+      students.forEach(s=>{ s._issues = detectStudentIssues(s); });
+      renderStudentsPreview(); enableRunIfReady();
+    }catch(err){console.error(err);alert('Could not read student CSV.');}
+  }
+
+  csvFile?.addEventListener('change',()=>{const f=csvFile.files?.[0];if(f)importStudentsFromFile(f);});
+  setDropHandlers({zone: studentDrop, onFile: importStudentsFromFile, input: csvFile, acceptExts:['.csv']});
+
+  function issuesHTML(issues){
+    if(!issues || !issues.length) return '';
+    return `<div class="issues" title="${issues.join(' • ')}">` + issues.map(t=>`<span class="issue-pill">${t}</span>`).join('') + `</div>`;
+  }
+
+  function renderStudentsPreview(){
+    if(students.length===0){studentsPreview.classList.add('hidden');return;}
+    studentsPreview.classList.remove('hidden');
+    studentsTableBody.innerHTML='';
+    const sorted=students.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+    let anyIssues=false;
+    for(const s of sorted){
+      const [c1,c2,c3]=s.preferences;
+      const issues = s._issues || [];
+      const tr=document.createElement('tr');
+      if(issues.length){ tr.classList.add('row-issue'); anyIssues=true; }
+      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${s.school||''}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td><td>${issuesHTML(issues)}</td>`;
+      studentsTableBody.appendChild(tr);
+    }
+    const legend=document.getElementById('issueLegend');
+    if(legend) legend.classList.toggle('hidden', !anyIssues);
+  }
+
+  /* ---------- Assignment ---------- */
+  function hash32(str){ let h=2166136261>>>0; for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=(h>>>0)*16777619>>>0;} return h>>>0; }
+  function stableLotteryOrder(candidates, seedStr){
+    const seed = hash32(seedStr);
+    return candidates.slice().sort((a,b)=>((hash32(String(a.id))^seed)>>>0) - ((hash32(String(b.id))^seed)>>>0));
+  }
+
+  function assignStudents(){
+    const cap=workshopList.map(w=>w.capacity);
+    const fill=new Array(workshopList.length).fill(0);
+    assignMap=new Map();
+    assignedRows=[];
+    unplaced=[];
+
+    const unassigned = new Map(students.map(s=>[s.id,s]));
+
+    function passAssign(rankIdx){
+      const byWorkshop = new Map();
+      for(const s of unassigned.values()){
+        const idx = findWorkshopIndexByName(s.preferences[rankIdx] || '');
+        if(idx === -1) continue;
+        if(!byWorkshop.has(idx)) byWorkshop.set(idx, []);
+        byWorkshop.get(idx).push(s);
+      }
+      for(const [idx, group] of byWorkshop){
+        const seats = cap[idx] - fill[idx];
+        if(seats<=0) continue;
+        const ordered = stableLotteryOrder(group, workshopList[idx].name);
+        const winners = ordered.slice(0, seats);
+        for(const s of winners){
+          assignMap.set(s.id, workshopList[idx].name);
+          unassigned.delete(s.id);
+          fill[idx]+=1;
+        }
+      }
+    }
+
+    passAssign(0); passAssign(1); passAssign(2);
+
+    const roomByName = new Map(workshopList.map(w => [w.name, w.room || '']));
+    for(const s of students){
+      const assigned = assignMap.get(s.id);
+      if(assigned){
+        assignedRows.push({
+          last: s.last, first: s.first, school: s.school||'',
+          workshop: assigned, room: roomByName.get(assigned)||''
+        });
+      }
+    }
+
+    for(const s of unassigned.values()){
+      const picks = s.preferences.map(p=>squeeze(normalize(p)));
+      const mapped = picks.map(p => p ? findWorkshopIndexByName(p) : -1);
+      let reason = '';
+      const anyUnknown = mapped.some((i,idx) => i===-1 && picks[idx]);
+      if (s._issues && s._issues.length) reason = s._issues.join(', ');
+      if (!reason && picks.every(p=>!p)) reason='No valid choices';
+      if (!reason && anyUnknown) reason='Unknown workshop name';
+      if (!reason) reason='All choices are full';
+      unplaced.push({id:s.id,last:s.last,first:s.first,school:s.school||'',preferences:s.preferences,reason});
+    }
+
+    return {fill};
+  }
+
+  runBtn.onclick=()=>{
+    if(!locked){alert('Lock workshops first');return;}
+    if(students.length===0){alert('Load students first');return;}
+    const {fill}=assignStudents();
+    students.forEach(s=>{ delete s._issues; });
+    renderReport(fill);
+  };
+  document.getElementById('resetAll').onclick=()=>location.reload();
+
+  /* ---------- Report ---------- */
+  function renderReport(fill){
+    resultsCard.classList.remove('hidden');
+    const totalCap=workshopList.reduce((a,w)=>a+w.capacity,0);
+    kvStudents.textContent=String(students.length);
+    kvWorkshops.textContent=String(workshopList.length);
+    kvCapacity.textContent=String(totalCap);
+    kvUnplaced.textContent=String(unplaced.length);
+
+    // Summary
+    balanceTableBody.innerHTML='';
+    const wsSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
+    wsSorted.forEach(w=>{
+      const assignedCount = assignedRows.filter(r=>r.workshop===w.name).length;
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${w.instructor}</td><td>${w.name}</td><td>${w.capacity}</td><td>${assignedCount}</td><td>${w.room||''}</td>`;
+      balanceTableBody.appendChild(tr);
+    });
+
+    // Assignments
+    studentTableBody.innerHTML='';
+    const seatedSorted=assignedRows.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+    for(const r of seatedSorted){
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${r.last}</td><td>${r.first}</td><td>${r.school}</td><td>${r.workshop}</td><td>${r.room}</td>`;
+      studentTableBody.appendChild(tr);
+    }
+
+    // Rosters
+    const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
+    for(const r of assignedRows){ rosterMap.get(r.workshop).push({last:r.last, first:r.first, school:r.school}); }
+    rosterDoc.innerHTML='';
+    const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
+    roSorted.forEach(w=>{
+      const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+      const section=document.createElement('section'); section.className='roster-section';
+      const header=document.createElement('div'); header.className='roster-header';
+      header.innerHTML = `
+        <span class="ws-name">${w.name}</span>
+        &nbsp;–&nbsp;<span class="instructor">${w.instructor}</span>
+        ${w.room?`&nbsp;&nbsp;<span class="room">${w.room}</span>`:''}
+        &nbsp;&nbsp;<span class="count">Assigned students: ${list.length}</span>`;
+      section.appendChild(header);
+      const grid=document.createElement('div'); grid.className='name-grid';
+      list.forEach(s=>{
+        const item=document.createElement('div'); item.className='name';
+        const fullName = s.first ? `${s.last}, ${s.first}` : s.last;
+        item.textContent = s.school ? `${fullName} — ${s.school}` : fullName;
+        grid.appendChild(item);
+      });
+      section.appendChild(grid);
+      rosterDoc.appendChild(section);
+    });
+
+    // Unplaced
+    unplacedTableBody.innerHTML='';
+    const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+    for(const u of unSorted){
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${u.last}</td><td>${u.first}</td><td>${u.school||''}</td><td>${(u.preferences||[]).join(' | ')}</td><td>${u.reason}</td>`;
+      unplacedTableBody.appendChild(tr);
+    }
+  }
+
+  /* ---------- Exports ---------- */
+  function toCSVFromTable(tableId) {
+    const t = document.getElementById(tableId);
+    if (!t) return '';
+    const rows = [...t.querySelectorAll('tr')];
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    return rows.map(r => [...r.children].map(c => esc(c.innerText || c.textContent || '')).join(',')).join('\r\n');
+  }
+  function downloadCSV(csv, name) {
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
+  }
+
+  function exportToPDF(title, html) {
+    const lib = window.html2pdf;
+    if(!lib){ alert('PDF library did not load. Try again or check your network.'); return; }
+    const host = document.createElement('div');
+    host.style.position='fixed'; host.style.top='0'; host.style.left='0';
+    host.style.zIndex='-1'; host.style.visibility='hidden'; host.style.width='100%';
+    document.body.appendChild(host);
+
+    const pdfStyles = `
+      html, body { margin:0; padding:0; }
+      * { box-sizing: border-box; }
+      h1 { font: 600 16pt Inter, Arial, sans-serif; margin: 0 0 10pt 0; color:#1f2430; }
+      h2 { font: 600 12pt Inter, Arial, sans-serif; margin: 14pt 0 6pt 0; color:#461D7C; }
+      h2 small { font-weight:400; color:#6b7280; }
+      .pdf-page{ break-inside: avoid; }
+      .pdf-page + .pdf-page{ break-before: page; }
+      table { width:100%; }
+      table.report { border-collapse: separate; border-spacing: 0; border: 1px solid #d1d5db; border-radius: 10px; background: #fff; }
+      thead { display: table-header-group; }
+      .report thead th { background:#f8fafc; font-weight:600; }
+      .report th, .report td { border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; padding:7pt 8pt; line-height:1.25; vertical-align: top; text-align: left; }
+      .report th:last-child, .report td:last-child { border-right:0 }
+      .report tr:last-child td { border-bottom:0 }
+      .summary-table th:nth-child(3), .summary-table td:nth-child(3),
+      .summary-table th:nth-child(4), .summary-table td:nth-child(4){ text-align:right; font-variant-numeric:tabular-nums; }
+      .summary-table th:nth-child(5), .summary-table td:nth-child(5){ white-space:nowrap; }`;
+
+    const container = document.createElement('div');
+    container.style.width = '7.5in'; container.style.margin = '0'; container.style.padding = '0';
+    container.innerHTML = `<style>${pdfStyles}</style><h1>${title}</h1>${html}`;
+    host.appendChild(container);
+
+    const opt = {
+      margin: [36, 36, 36, 36],
+      filename: `${title.toLowerCase().replace(/\s+/g, '_')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0, scrollX: 0 },
+      jsPDF: { unit: 'pt', format: 'letter', orientation: 'portrait' },
+      pagebreak: { mode: ['css'] }
+    };
+
+    lib().set(opt).from(container).toPdf().get('pdf').then(pdf=>{
+      const url = pdf.output('bloburl'); window.open(url, '_blank');
+    }).finally(()=>host.remove());
+  }
+
+  function exportTablesAsPDF(title, items){
+    let html = "";
+    items.forEach(({id, label})=>{
+      const t=document.getElementById(id);
+      if(!t) return;
+      html += `<h2>${label}</h2><table class="report">${t.tHead.outerHTML}${t.tBodies[0].outerHTML}</table>`;
+    });
+    exportToPDF(title, html);
+  }
+
+  if (printStudentsBtn) {
+    printStudentsBtn.onclick = () => exportTablesAsPDF('Students (Choices)', [{id: 'studentsTable', label: 'Students and choices'}]);
+    exportStudentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentsTable'), 'students.csv');
+  }
+  printSummaryBtn.onclick = () => exportTablesAsPDF('Summary', [{id: 'balanceTable', label: 'Workshop capacities & assignments'}]);
+  exportSummaryCsvBtn.onclick = () => downloadCSV(toCSVFromTable('balanceTable'), 'summary.csv');
+
+  printAssignmentsBtn.onclick = () => exportTablesAsPDF('Student Assignments', [{id: 'studentTable', label: 'Assignments'}]);
+  exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
+
+  printRostersBtn.onclick = () => exportToPDF('Workshop Rosters', `<div class="pdf-roster">${rosterDoc.innerHTML}</div>`);
+  exportRostersCsvBtn.onclick = () => {
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const rows = [['Workshop','Instructor','Room','Assigned count','Student','School']];
+    const rosterMap = new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
+    for(const r of assignedRows){ rosterMap.get(r.workshop).push({last:r.last, first:r.first, school:r.school||''}); }
+    const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
+    roSorted.forEach(w=>{
+      const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+      if(list.length===0){ rows.push([w.name, w.instructor, w.room||'', '0', '', '']); }
+      else{ list.forEach(s=> rows.push([w.name, w.instructor, w.room||'', String(list.length), `${s.last}, ${s.first}`, s.school||''])); }
+    });
+    downloadCSV(rows.map(r=>r.map(esc).join(',')).join('\r\n'), 'rosters.csv');
+  };
+
+  printUnplacedBtn.onclick = () => exportTablesAsPDF('Unplaced Students', [{id: 'unplacedTable', label: 'Unplaced'}]);
+  exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
+
+  /* ---------- Tabs ---------- */
+  function setTab(which) {
+    [tabSummary, tabStudents, tabRosters, tabUnplaced].forEach(t => t.classList.remove('active'));
+    [panelSummary, panelStudents, panelRosters, panelUnplaced].forEach(p => p.classList.add('hidden'));
+    if (which === 'summary') {tabSummary.classList.add('active'); panelSummary.classList.remove('hidden')}
+    if (which === 'students') {tabStudents.classList.add('active'); panelStudents.classList.remove('hidden')}
+    if (which === 'rosters') {tabRosters.classList.add('active'); panelRosters.classList.remove('hidden')}
+    if (which === 'unplaced') {tabUnplaced.classList.add('active'); panelUnplaced.classList.remove('hidden')}
+  }
+  tabSummary.onclick = () => setTab('summary');
+  tabStudents.onclick = () => setTab('students');
+  tabRosters.onclick = () => setTab('rosters');
+  tabUnplaced.onclick = () => setTab('unplaced');
+
+}catch(err){
+  console.error(err);
+  showInitError(err && err.message ? err.message : String(err));
+}
+</script>
+
+</body>
+</html>
 
