@@ -11,8 +11,7 @@
   --brand-font: Inter, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
   --radius:14px; --radius-sm:10px; --shadow:0 1px 2px rgba(0,0,0,.04);
 }
-*{box-sizing:border-box}
-html,body{height:100%}
+*{box-sizing:border-box} html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--brand-font);line-height:1.4}
 .header{background:linear-gradient(90deg,var(--lsu-purple),#2d1252);color:#fff;padding:24px 16px}
 .wrap{max-width:1120px;margin:0 auto;padding:16px}
@@ -40,129 +39,52 @@ button[disabled]{opacity:.55;cursor:not-allowed}
 .tab{padding:8px 12px;border:1px solid var(--line-soft);border-bottom:0;border-radius:10px 10px 0 0;background:#f8fafc;cursor:pointer}
 .tab.active{background:#fff;border-color:var(--lsu-purple)}
 .panel{border:1px solid var(--line-soft);border-radius:0 12px 12px 12px;background:#fff;padding:12px}
-
-/* drop zones */
-.dropzone{display:flex;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:12px;min-height:44px;color:#6b7280;background:#fff; user-select:none}
+.dropzone{display:flex;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:12px;min-height:44px;color:#6b7280;background:#fff;user-select:none}
 .dropzone.drag{border-color:var(--lsu-purple);background:#faf5ff}
 .dropzone.disabled{opacity:.6;pointer-events:none}
-
-/* generic scrollbox */
-.scrollbox{
-  max-height:420px;
-  overflow:auto;
-  border:1px solid var(--line);
-  border-radius:12px;
-  background:#fff;
-}
-
-/* tables */
+.scrollbox{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
 table{width:100%}
-table.report{
-  border-collapse:separate;border-spacing:0;border:1px solid var(--line);
-  border-radius:12px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.02);
-}
-.report thead th{
-  background:#f8fafc;font-weight:600;
-  position:sticky; top:0; z-index:1;
-}
-.report th,.report td{
-  padding:10px 12px;text-align:left;vertical-align:top;
-  border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);
-}
-.report th:last-child,.report td:last-child{border-right:0}
-.report tr:last-child td{border-bottom:0}
-
-/* Summary align */
-#balanceTable th:nth-child(3),#balanceTable td:nth-child(3),
-#balanceTable th:nth-child(4),#balanceTable td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
+table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+.report thead th{background:#f8fafc;font-weight:600;position:sticky;top:0;z-index:1}
+.report th,.report td{padding:10px 12px;text-align:left;vertical-align:top;border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+.report th:last-child,.report td:last-child{border-right:0}.report tr:last-child td{border-bottom:0}
+#balanceTable th:nth-child(3),#balanceTable td:nth-child(3),#balanceTable th:nth-child(4),#balanceTable td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
 #balanceTable th:nth-child(5),#balanceTable td:nth-child(5){white-space:nowrap}
-
-/* Step 2 issue highlighting */
-.row-issue td{ background:#FFF7ED; }
-
-/* issues chips */
-.issues{ display:flex; flex-wrap:wrap; gap:6px; }
-.issue-pill{
-  font-size:11px; padding:2px 8px; border-radius:999px;
-  background:#FEF3C7; border:1px solid #FDE68A; color:#92400E;
-}
-.issue-legend{ color:#6b7280; font-size:12px; margin-top:6px }
-
-/* Rosters (document style) */
-#rosterDoc{ display:flex; flex-direction:column; gap:12px; }
-.roster-section{
-  border:1px solid var(--line);
-  border-radius:12px;
-  background:#fff;
-  box-shadow:0 1px 0 rgba(0,0,0,.02);
-  overflow:hidden;
-}
-.roster-header{
-  background:#f3f4f6;
-  font-weight:800;
-  text-align:center;
-  font-size:16px;
-  padding:10px 12px;
-}
-.roster-header .ws-name{ font-weight:900 }
-.roster-header .instructor{ font-weight:800 }
-.roster-header .room{ color:#374151 }
-.roster-header .count{ font-weight:800; white-space:nowrap }
-
-/* 3 columns desktop → 2 tablet → 1 phone */
-.name-grid{
-  padding:8px 10px 12px 10px;
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap:6px 24px;
-}
-@media (max-width: 900px){ .name-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px){ .name-grid{ grid-template-columns: 1fr; } }
-
-.name{
-  padding:2px 0;
-  border-bottom:1px solid var(--line-soft);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.name:last-child{ border-bottom:0 }
-
+.row-issue td{background:#FFF7ED}
+.issues{display:flex;flex-wrap:wrap;gap:6px}
+.issue-pill{font-size:11px;padding:2px 8px;border-radius:999px;background:#FEF3C7;border:1px solid #FDE68A;color:#92400E}
+.issue-legend{color:#6b7280;font-size:12px;margin-top:6px}
+#rosterDoc{display:flex;flex-direction:column;gap:12px}
+.roster-section{border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.02);overflow:hidden}
+.roster-header{background:#f3f4f6;font-weight:800;text-align:center;font-size:16px;padding:10px 12px}
+.roster-header .ws-name{font-weight:900}.roster-header .instructor{font-weight:800}.roster-header .room{color:#374151}.roster-header .count{font-weight:800;white-space:nowrap}
+.name-grid{padding:8px 10px 12px 10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 24px}
+@media (max-width:900px){.name-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.name-grid{grid-template-columns:1fr}}
+.name{padding:2px 0;border-bottom:1px solid var(--line-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.name:last-child{border-bottom:0}
 .nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
-
 @media print{.header,.tabs,.printbar,.badge{display:none !important}}
 </style>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 </head>
 <body>
 <noscript><div class="wrap"><div class="nojs">JavaScript is disabled. Turn it on to use Workshop Sorter.</div></div></noscript>
 
-<div class="header">
-  <div class="wrap brand"><div class="title">Workshop Sorter</div></div>
-</div>
+<div class="header"><div class="wrap brand"><div class="title">Workshop Sorter</div></div></div>
 
 <div class="wrap" id="appRoot" aria-busy="true">
   <!-- STEP 1 -->
   <div class="card">
     <div class="row" style="justify-content:space-between;align-items:flex-end">
-      <div>
-        <div class="badge">step 1 of 3</div>
-        <div style="margin-top:6px">Define workshops before loading students</div>
-      </div>
+      <div><div class="badge">step 1 of 3</div><div style="margin-top:6px">Define workshops before loading students</div></div>
       <div class="two" style="align-items:end;min-width:360px">
-        <div>
-          <label class="small">How many workshops (1–20)</label>
-          <select id="numWorkshops"><option value="0">Select count</option></select>
-        </div>
+        <div><label class="small">How many workshops (1–20)</label><select id="numWorkshops"><option value="0">Select count</option></select></div>
         <button id="buildWorkshopRows" class="ghost">Create rows</button>
       </div>
     </div>
     <div class="two" style="margin-top:10px">
-      <div>
-        <label class="small">Upload Workshops CSV (Instructor, Workshop, [Room], [Capacity])</label>
-        <input id="workshopCsvFile" type="file" accept=".csv">
-      </div>
+      <div><label class="small">Upload Workshops CSV (Instructor, Workshop, [Room], [Capacity])</label><input id="workshopCsvFile" type="file" accept=".csv"></div>
       <div id="workshopDrop" class="dropzone" tabindex="0" role="button" aria-label="Drop workshops CSV here or click to browse">Drag and drop Workshops CSV here</div>
     </div>
     <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
@@ -171,9 +93,7 @@ table.report{
       <button id="undoDelete" class="smallbtn" title="Undo last delete" disabled>Undo delete</button>
       <button id="clearWorkshops" class="smallbtn">Clear all</button>
     </div>
-    <fieldset id="wkFieldset" style="margin-top:10px;border:0;padding:0">
-      <div id="wkContainer"></div>
-    </fieldset>
+    <fieldset id="wkFieldset" style="margin-top:10px;border:0;padding:0"><div id="wkContainer"></div></fieldset>
     <div id="wkErrors" class="helper hidden"></div>
     <div class="row" style="justify-content:space-between;margin-top:8px">
       <div class="locknote hidden" id="lockNote">Workshops are locked. Click Reset all in Step 3 to start over.</div>
@@ -188,10 +108,8 @@ table.report{
     <div style="margin-top:6px">Load students with three ranked choices</div>
     <div class="two">
       <div>
-        <label class="small">
-          Upload CSV with columns: Last, First, School, Choice1, Choice2, Choice3
-          <br>(Also supports legacy “Student, Choice1, Choice2, Choice3”)
-        </label>
+        <label class="small">Upload CSV with columns: Last, First, School, Choice1, Choice2, Choice3
+          <br>(Also supports legacy “Student, Choice1, Choice2, Choice3”)</label>
         <input id="csvFile" type="file" accept=".csv" disabled>
       </div>
       <div id="studentDrop" class="dropzone disabled" tabindex="0" role="button" aria-label="Drop students CSV here or click to browse">Drag and drop Student CSV here</div>
@@ -201,12 +119,10 @@ table.report{
       <div class="badge">loaded students</div>
       <div class="scrollbox">
         <table id="studentsTable" class="report">
-          <thead>
-            <tr>
-              <th>Last Name</th><th>First Name</th><th>School</th>
-              <th>First Choice</th><th>Second Choice</th><th>Third Choice</th><th>Issues</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th>Last Name</th><th>First Name</th><th>School</th>
+            <th>First Choice</th><th>Second Choice</th><th>Third Choice</th><th>Issues</th>
+          </tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -247,9 +163,7 @@ table.report{
           <div>Unplaced: <span id="kvUnplaced"></span></div>
         </div>
         <table id="balanceTable" class="report">
-          <colgroup>
-            <col style="width:28%"><col style="width:34%"><col style="width:12%"><col style="width:12%"><col style="width:14%">
-          </colgroup>
+          <colgroup><col style="width:28%"><col style="width:34%"><col style="width:12%"><col style="width:12%"><col style="width:14%"></colgroup>
           <thead><tr><th>Instructor</th><th>Workshop</th><th>Capacity</th><th>Assigned</th><th>Room</th></tr></thead>
           <tbody></tbody>
         </table>
@@ -273,9 +187,7 @@ table.report{
       </div>
 
       <div id="panelRosters" class="hidden">
-        <div class="scrollbox">
-          <div id="rosterDoc"></div>
-        </div>
+        <div class="scrollbox"><div id="rosterDoc"></div></div>
         <div class="printbar">
           <button id="printRosters" class="ghost">Export rosters (PDF)</button>
           <button id="exportRostersCsv" class="ghost">Export rosters (.csv)</button>
@@ -301,17 +213,14 @@ table.report{
 <script>
 function showInitError(msg){
   try{
-    const root=document.getElementById('appRoot');
-    if(!root) return;
-    const d=document.createElement('div');
-    d.className='nojs';
+    const root=document.getElementById('appRoot'); if(!root) return;
+    const d=document.createElement('div'); d.className='nojs';
     d.textContent='There was an error initializing the app: ' + (msg||'unknown error');
     root.prepend(d);
   }catch(_){}
 }
 
 try{
-  /* page-level drag guard */
   ['dragenter','dragover','drop'].forEach(evt=>{
     document.addEventListener(evt, e=>{
       if (e.target && e.target.closest && e.target.closest('.dropzone')) return;
@@ -320,7 +229,7 @@ try{
     }, {passive:false});
   });
 
-  /* ---------- DOM ---------- */
+  /* DOM */
   const numWorkshops=document.getElementById('numWorkshops');
   const buildWorkshopRows=document.getElementById('buildWorkshopRows');
   const workshopCsvFile=document.getElementById('workshopCsvFile');
@@ -369,13 +278,13 @@ try{
 
   if(!numWorkshops || !buildWorkshopRows || !wkContainer){ showInitError('Missing core DOM nodes.'); throw new Error('missing anchors'); }
 
-  /* ---------- State ---------- */
+  /* State */
   let locked=false;
   let workshopList=[];  // {name, instructor, room, capacity}
   let students=[];      // {id,last,first,school,label,preferences}
-  let assignMap=new Map();   // id -> workshop name (seated only)
-  let assignedRows=[];       // seated rows for rendering/exports
-  let unplaced=[];           // not seated + reason
+  let assignMap=new Map();
+  let assignedRows=[];
+  let unplaced=[];
   let deletedStack=[];
 
   document.addEventListener('DOMContentLoaded',()=>{
@@ -383,30 +292,43 @@ try{
     document.getElementById('appRoot')?.setAttribute('aria-busy','false');
   });
 
-  /* ---------- Smart decode (fix curly ’ from Excel) ---------- */
+  /* -------- SMART DECODING (no network) -------- */
   async function readFileTextSmart(file){
     const buf = await file.arrayBuffer();
-    const encs = ['utf-8','windows-1252','iso-8859-1'];
-    let best = {txt:'', bad:1e9};
-    for(const enc of encs){
+    const decs = [
+      {enc:'utf-8', dec:new TextDecoder('utf-8',{fatal:false})},
+      {enc:'windows-1252', dec:new TextDecoder('windows-1252',{fatal:false})},
+      {enc:'iso-8859-1', dec:new TextDecoder('iso-8859-1',{fatal:false})},
+    ];
+    function score(t){
+      // Heavy penalties for obvious mojibake + replacement chars + C1 controls
+      const rep = (t.match(/\uFFFD/g)||[]).length;
+      const ctrl = (t.match(/[\u0080-\u009F]/g)||[]).length;
+      const moj = (t.match(/â€™|â€œ|â€\u009d|â€˜|â€“|â€”|Ã.|Â./g)||[]).length;
+      // Reward real curly quotes a bit
+      const good = (t.match(/[’“”]/g)||[]).length;
+      return rep*100 + ctrl*20 + moj*10 - good*2;
+    }
+    let bestTxt='', bestScore=1e12, bestEnc='utf-8';
+    for(const {enc,dec} of decs){
       try{
-        const dec = new TextDecoder(enc, {fatal:false});
         const txt = dec.decode(buf);
-        const bad = (txt.match(/\uFFFD/g)||[]).length;
-        if(bad < best.bad) best = {txt, bad};
+        const sc = score(txt);
+        if(sc < bestScore || (sc===bestScore && enc==='utf-8')){ bestScore=sc; bestTxt=txt; bestEnc=enc; }
       }catch(_){}
     }
-    return best.txt;
+    // Final scrub of a few common sequences in case a system lacks cp1252 decoder
+    bestTxt = bestTxt
+      .replace(/â€™/g,'’').replace(/â€˜/g,'‘').replace(/â€œ/g,'“').replace(/â€\u009d/g,'”')
+      .replace(/â€“/g,'–').replace(/â€”/g,'—');
+    return bestTxt;
   }
 
-  /* ---------- Normalization & keys ---------- */
+  /* -------- Normalization + matching keys -------- */
   const normalize=(s)=>{
     let t = s == null ? '' : String(s);
-    t = t.replace(/^\uFEFF/, '');
-    t = t.trim()
-         .replace(/[‘’‛`´]/g,"'")     // all apostrophe-ish → '
-         .replace(/[“”«»„]/g,'"')
-         .replace(/[‐–—]/g,'-')
+    t = t.replace(/^\uFEFF/,'').trim()
+         .replace(/[‘’‛`´]/g,"'").replace(/[“”«»„]/g,'"').replace(/[‐–—]/g,'-')
          .replace(/\s*&\s*/gi,' and ')
          .replace(/\s+/g,' ')
          .replace(/\s*[.,:;!?]+$/,'')
@@ -414,24 +336,22 @@ try{
     return t;
   };
   const baseKey=(s)=> normalize(s).toLowerCase()
-    .replace(/[^\p{L}\p{N}' -]+/gu,'')   // keep apostrophe
+    .replace(/[^\p{L}\p{N}' -]+/gu,'')  // keep apostrophes
     .replace(/\bthe\b/g,'')
     .replace(/\s+/g,' ')
     .trim();
-  const keyKeepApos = (s)=> baseKey(s);
-  const keyNoApos   = (s)=> baseKey(s).replace(/'/g,''); // second index w/o '
+  const keyKeep=(s)=> baseKey(s);
+  const keyNo=(s)=> baseKey(s).replace(/'/g,'');
 
-  const tokens=(s)=> keyNoApos(s).split(' ').filter(Boolean); // tokenization ignores apostrophes for fuzzy
+  const tokens=(s)=> keyNo(s).split(' ').filter(Boolean);
   const jaccard=(a,b)=>{const A=new Set(a),B=new Set(b);let inter=0;for(const x of A){if(B.has(x)) inter++;}return inter/(new Set([...A,...B]).size||1);};
-
   function levRatio(a,b){
-    a=keyNoApos(a); b=keyNoApos(b);
+    a=keyNo(a); b=keyNo(b);
     const m=a.length,n=b.length; if(m===0&&n===0) return 1; if(m===0||n===0) return 0;
     let prev=new Array(n+1), curr=new Array(n+1);
     for(let j=0;j<=n;j++) prev[j]=j;
     for(let i=1;i<=m;i++){
-      curr[0]=i;
-      const ai=a.charCodeAt(i-1);
+      curr[0]=i; const ai=a.charCodeAt(i-1);
       for(let j=1;j<=n;j++){
         const cost = (ai===b.charCodeAt(j-1)) ? 0 : 1;
         curr[j]=Math.min(prev[j]+1, curr[j-1]+1, prev[j-1]+cost);
@@ -441,37 +361,30 @@ try{
     const dist=prev[n]; return 1 - dist/Math.max(m,n);
   }
 
-  /* ---------- Lookup maps ---------- */
-  let wsMapKeep = new Map(); // keyKeepApos(name) -> index
-  let wsMapNo   = new Map(); // keyNoApos(name)   -> index
-  function rebuildWorkshopKeyMaps(){
-    wsMapKeep = new Map(); wsMapNo = new Map();
-    workshopList.forEach((w,i)=>{
-      wsMapKeep.set(keyKeepApos(w.name), i);
-      wsMapNo.set(keyNoApos(w.name), i);
-    });
+  /* fast lookup maps */
+  let wsMapKeep=new Map(); // keep-apostrophe
+  let wsMapNo=new Map();   // strip-apostrophe
+  function rebuildWorkshopMaps(){
+    wsMapKeep=new Map(); wsMapNo=new Map();
+    workshopList.forEach((w,i)=>{ wsMapKeep.set(keyKeep(w.name),i); wsMapNo.set(keyNo(w.name),i); });
   }
-
   function findWorkshopIndexByName(name){
     if(!name) return -1;
-    const kKeep = keyKeepApos(name);
-    const kNo   = keyNoApos(name);
-    if(wsMapKeep.has(kKeep)) return wsMapKeep.get(kKeep);
-    if(wsMapNo.has(kNo))     return wsMapNo.get(kNo);
-
-    // fuzzy
-    const t = tokens(name);
-    let best = {idx:-1, score:0};
+    const k1=keyKeep(name), k2=keyNo(name);
+    if(wsMapKeep.has(k1)) return wsMapKeep.get(k1);
+    if(wsMapNo.has(k2))   return wsMapNo.get(k2);
+    // fuzzy if no exact
+    const t=tokens(name); let best={idx:-1,score:0};
     for(let i=0;i<workshopList.length;i++){
       const w=workshopList[i];
-      const wNo=keyNoApos(w.name);
-      const scoreJ=jaccard(t,tokens(w.name));
-      const contain = (wNo.includes(kNo) || kNo.includes(wNo)) ? Math.min(wNo.length,kNo.length)/Math.max(wNo.length,kNo.length) : 0;
-      const scoreL=levRatio(kNo,wNo);
-      const score = Math.max(scoreJ, contain, scoreL);
-      if(score>best.score) best={idx:i,score};
+      const wNo=keyNo(w.name);
+      const sJ=jaccard(t,tokens(w.name));
+      const contain=(wNo.includes(k2)||k2.includes(wNo))?Math.min(wNo.length,k2.length)/Math.max(wNo.length,k2.length):0;
+      const sL=levRatio(k2,wNo);
+      const s=Math.max(sJ,contain,sL);
+      if(s>best.score) best={idx:i,score:s};
     }
-    return best.score >= 0.62 ? best.idx : -1;
+    return best.score>=0.62?best.idx:-1;
   }
 
   const enableRunIfReady=()=>{ runBtn.disabled=!(locked && students.length>0); };
@@ -480,37 +393,29 @@ try{
   const makeSeed=()=>{ try{const a=new Uint32Array(2);crypto.getRandomValues(a);return a[0]+'-'+a[1];}catch(_){return Date.now()+'-'+Math.floor(Math.random()*1e9)}};
   const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); };
 
-  /* ---------- DnD helpers ---------- */
+  /* DnD */
   function setDropHandlers({zone, onFile, input, acceptExts=['.csv']}){
     if(!zone) return;
-    let dragDepth = 0;
-    const isDisabled = ()=> zone.classList.contains('disabled') || zone.hasAttribute('aria-disabled');
-    const highlight  = ()=>{ if(!isDisabled()) zone.classList.add('drag'); };
-    const unhighlight= ()=> zone.classList.remove('drag');
-    const openPicker = ()=>{ if(input && !isDisabled()){ input.click(); } };
-
-    zone.addEventListener('click', openPicker);
-    zone.addEventListener('keydown', (e)=>{ if((e.key==='Enter'||e.key===' ') && !isDisabled()){ e.preventDefault(); openPicker(); } });
-
-    const hasFilesType = (dt)=> { try{ const types = dt && dt.types ? Array.from(dt.types) : []; return !types.length || types.includes('Files'); } catch{ return true; } };
-    const pickFile = (dt)=> dt?.files?.[0] || null;
-    const isAccepted = (file)=> acceptExts.some(ext => (file?.name||'').toLowerCase().endsWith(ext));
-
-    zone.addEventListener('dragenter', (e)=>{ if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return; e.preventDefault(); dragDepth++; highlight(); }, {passive:false});
-    zone.addEventListener('dragover',  (e)=>{ if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return; e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='copy'; }, {passive:false});
-    zone.addEventListener('dragleave', (e)=>{ if(isDisabled()) return; e.preventDefault(); dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0) unhighlight(); }, {passive:false});
-    zone.addEventListener('drop',      (e)=>{ if(isDisabled()) return; e.preventDefault(); dragDepth=0; unhighlight(); const f=pickFile(e.dataTransfer); if(!f){ alert('Drop a .csv file.'); return; } if(!isAccepted(f)){ alert('Please drop a .csv file.'); return; } if(input){ const dt=new DataTransfer(); dt.items.add(f); input.files=dt.files; } onFile(f); }, {passive:false});
+    let dragDepth=0;
+    const disabled=()=>zone.classList.contains('disabled')||zone.hasAttribute('aria-disabled');
+    const hi=()=>{if(!disabled())zone.classList.add('drag')};
+    const un=()=>zone.classList.remove('drag');
+    const picker=()=>{if(input&&!disabled())input.click()};
+    zone.addEventListener('click',picker);
+    zone.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!disabled()){e.preventDefault();picker();}});
+    const hasFiles=(dt)=>{try{const t=dt&&dt.types?Array.from(dt.types):[];return !t.length||t.includes('Files')}catch{return true}};
+    const pick=(dt)=>dt?.files?.[0]||null;
+    const accept=(f)=>acceptExts.some(ext=>(f?.name||'').toLowerCase().endsWith(ext));
+    zone.addEventListener('dragenter',e=>{if(disabled())return; if(!hasFiles(e.dataTransfer))return; e.preventDefault();dragDepth++;hi()},{passive:false});
+    zone.addEventListener('dragover', e=>{if(disabled())return; if(!hasFiles(e.dataTransfer))return; e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='copy'},{passive:false});
+    zone.addEventListener('dragleave',e=>{if(disabled())return; e.preventDefault();dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0)un()},{passive:false});
+    zone.addEventListener('drop',     e=>{if(disabled())return; e.preventDefault();dragDepth=0;un();const f=pick(e.dataTransfer); if(!f){alert('Drop a .csv file.');return;} if(!accept(f)){alert('Please drop a .csv file.');return;} if(input){const dt=new DataTransfer();dt.items.add(f);input.files=dt.files;} onFile(f);},{passive:false});
   }
 
   function setWorkshopControlsEnabled(enabled){
-    numWorkshops.disabled=!enabled;
-    buildWorkshopRows.disabled=!enabled;
-    addWorkshopRowBtn.disabled=!enabled;
-    importWorkshopsBtn.disabled=!enabled;
-    workshopCsvFile.disabled=!enabled;
-    workshopDrop?.classList.toggle('disabled',!enabled);
-    undoDeleteBtn.disabled=!enabled || deletedStack.length===0;
-    clearWorkshops.disabled=!enabled;
+    numWorkshops.disabled=!enabled; buildWorkshopRows.disabled=!enabled; addWorkshopRowBtn.disabled=!enabled;
+    importWorkshopsBtn.disabled=!enabled; workshopCsvFile.disabled=!enabled; workshopDrop?.classList.toggle('disabled',!enabled);
+    undoDeleteBtn.disabled=!enabled||deletedStack.length===0; clearWorkshops.disabled=!enabled;
   }
 
   buildWorkshopRows.onclick=()=>{
@@ -518,19 +423,16 @@ try{
     if(!n||n<1||n>20){alert('Choose 1 to 20 workshops');return;}
     renderWorkshopGrid(n);
   };
-
   function ensureHeader(){
     if(!wkContainer.querySelector('.wkHeader')){
-      const header=document.createElement('div');
-      header.className='wkHeader';
-      header.innerHTML=`<div class="five" style="font-size:12px;color:#6b7280;margin-bottom:6px">
+      const h=document.createElement('div'); h.className='wkHeader';
+      h.innerHTML=`<div class="five" style="font-size:12px;color:#6b7280;margin-bottom:6px">
         <div>Instructor</div><div>Workshop name</div><div>Capacity</div><div>Room (optional)</div><div></div></div>`;
-      wkContainer.appendChild(header);
+      wkContainer.appendChild(h);
     }
   }
   function newRow({instructor='',name='',capacity='12',room=''}={}){
-    const row=document.createElement('div');
-    row.className='five wkRow';
+    const row=document.createElement('div'); row.className='five wkRow';
     row.innerHTML=`<input type="text" class="wkInstructor" placeholder="Instructor name" value="${instructor}">
       <input type="text" class="wkName" placeholder="Workshop" value="${name}">
       <input type="number" class="wkCap" min="1" value="${capacity}">
@@ -538,37 +440,30 @@ try{
       <button type="button" class="smallbtn wkDel" title="Delete this row">×</button>`;
     wkContainer.appendChild(row);
   }
-  function renderWorkshopGrid(n){
-    wkContainer.innerHTML="";
-    ensureHeader();
-    deletedStack=[]; updateUndoState();
-    for(let i=0;i<n;i++) newRow({capacity:''});
-  }
+  function renderWorkshopGrid(n){ wkContainer.innerHTML=""; ensureHeader(); deletedStack=[]; updateUndoState(); for(let i=0;i<n;i++) newRow({capacity:''}); }
   addWorkshopRowBtn.onclick=()=>{ if(locked) return; ensureHeader(); newRow(); };
 
-  wkContainer.addEventListener('click',(e)=>{
-    const btn=e.target.closest?.('.wkDel'); if(!btn || locked) return;
+  wkContainer.addEventListener('click',e=>{
+    const btn=e.target.closest?.('.wkDel'); if(!btn||locked) return;
     const row=btn.closest('.wkRow'); if(!row) return;
     const fields=row.querySelectorAll('input');
     const data={ instructor: fields[0]?.value||'', name: fields[1]?.value||'', capacity: fields[2]?.value||'12', room: fields[3]?.value||'' };
     const rows=[...wkContainer.querySelectorAll('.wkRow')];
     const index=rows.indexOf(row);
     deletedStack.push({data,index});
-    row.remove();
-    updateUndoState();
+    row.remove(); updateUndoState();
   });
-  function updateUndoState(){ undoDeleteBtn.disabled = locked || deletedStack.length===0; }
+  function updateUndoState(){ undoDeleteBtn.disabled=locked||deletedStack.length===0; }
   undoDeleteBtn.onclick=()=>{
     if(locked||deletedStack.length===0) return;
     ensureHeader();
     const {data,index}=deletedStack.pop();
     const rows=[...wkContainer.querySelectorAll('.wkRow')];
-    const marker = rows[index] || null;
-    const row=document.createElement('div');
-    row.className='five wkRow';
+    const marker=rows[index]||null;
+    const row=document.createElement('div'); row.className='five wkRow';
     row.innerHTML=`<input type="text" class="wkInstructor" placeholder="Instructor name" value="${data.instructor}">
       <input type="text" class="wkName" placeholder="Workshop" value="${data.name}">
-      <input type="number" class="wkCap" min="1" value="${data.capacity || '12'}">
+      <input type="number" class="wkCap" min="1" value="${data.capacity||'12'}">
       <input type="text" class="wkRoom" placeholder="e.g., BH 101 (optional)" value="${data.room}">
       <button type="button" class="smallbtn wkDel" title="Delete this row">×</button>`;
     if(marker){ wkContainer.insertBefore(row, marker); } else { wkContainer.appendChild(row); }
@@ -584,23 +479,23 @@ try{
     workshopList=[]; wsMapKeep.clear(); wsMapNo.clear();
   };
 
-  /* ---------- CSV helpers ---------- */
+  /* CSV parsing */
   function splitCSV(line){
     const out=[], re=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g; let m;
     while((m=re.exec(line))){ out.push(m[1]?m[1].replace(/""/g,'"'):m[2]); if(!m[3]) break; }
     return out;
   }
   function parseCSV(text){
-    const lines=text.split(/\r?\n/).map(s=>s.replace(/^\uFEFF/, '').trim()).filter(Boolean);
+    const lines=text.split(/\r?\n/).map(s=>s.replace(/^\uFEFF/,'')).filter(l=>l!=='' && !/^\s+$/.test(l));
     const rows=[]; for(const l of lines) rows.push(splitCSV(l).map(c=>c.trim())); return rows;
   }
   const extractInt=(str)=>{ if(str==null) return null; const m=String(str).match(/-?\d+/); if(!m) return null; const n=parseInt(m[0],10); return Number.isFinite(n)?n:null; };
 
-  /* ---------- Workshop import ---------- */
+  /* Workshops import */
   function detectWorkshopColumns(rows){
     if(!rows.length) return {wIdx:0,iIdx:1,cIdx:null,rIdx:null,startIdx:0};
     const hdr = rows[0].map(c => String(c ?? '').toLowerCase());
-    const hasHeaderToken = (h)=> /(^|\b)(workshop|title|instructor|teacher|presenter|capacit|seats|size|max|room|location|rm|#)(\b|$)/.test(h);
+    const hasHeaderToken = (h)=> /(^|\b)(workshop|title|session|class|instructor|teacher|presenter|capacit|seats|size|max|room|location|rm|#)(\b|$)/.test(h);
     if (hdr.some(hasHeaderToken)) {
       const findIdx=(rxs)=> hdr.findIndex(h=>rxs.some(rx=>rx.test(h)));
       let wIdx=findIdx([/workshop|title|session|class/]),
@@ -613,23 +508,17 @@ try{
       if(rIdx===-1) rIdx=null;
       return {wIdx,iIdx,cIdx,rIdx,startIdx:1};
     }
-    // no header → attempt simple heuristics
-    const first = rows[0] || [];
-    const cols = first.length;
-    if(cols===3){ return {wIdx:0,iIdx:1,cIdx:null,rIdx:2,startIdx:0}; }         // Workshop, Instructor, Room
-    if(cols===2){ return {wIdx:0,iIdx:1,cIdx:null,rIdx:null,startIdx:0}; }      // Workshop, Instructor
-    const iIdx = cols > 0 ? 0 : null;
-    const wIdx = cols > 1 ? 1 : null;
-    const rIdx = cols > 2 ? 2 : null;
-    const cIdx = cols > 3 ? 3 : null;
-    return { wIdx, iIdx, cIdx, rIdx, startIdx:0 };
+    // Headerless heuristics
+    const first = rows[0] || []; const cols=first.length;
+    const iIdx = cols>0?0:null, wIdx = cols>1?1:null, rIdx = cols>2?2:null, cIdx = cols>3?3:null;
+    return {wIdx,iIdx,cIdx,rIdx,startIdx:0};
   }
 
   async function importWorkshopsFromFile(file){
     try{
       const fname=(file?.name||'').toLowerCase();
       if(!fname.endsWith('.csv')){alert('Please use a .csv file for workshops (not .xlsx).');return;}
-      const text=await readFileTextSmart(file);
+      const text=await readFileTextSmart(file);     // ← robust decode
       const rows=parseCSV(text);
       if(rows.length===0){alert('No rows found');return;}
 
@@ -647,13 +536,12 @@ try{
         const instructor = normalize(rawI);
         const room = normalize(rawR || '');
         const capNum = extractInt(rawC);
-        let capacity = '12';
-        if(Number.isFinite(capNum) && capNum > 0) capacity = String(capNum);
+        let capacity = '12'; if(Number.isFinite(capNum) && capNum > 0) capacity = String(capNum);
 
         if (!name && !instructor) continue;
         if (!name) continue;
 
-        const k = keyKeepApos(name) + '|' + keyKeepApos(instructor);
+        const k = keyKeep(name) + '|' + keyKeep(instructor);
         if(!seen.has(k)) seen.set(k,{name,instructor,capacity,room});
       }
 
@@ -692,7 +580,7 @@ try{
       if(!name){names[i].classList.add('invalid');hasError=true;}
       if(!ins){instr[i].classList.add('invalid');hasError=true;}
       if(!Number.isFinite(cap)||cap<1){cap=12;}
-      const k=keyKeepApos(name)+'|'+keyKeepApos(ins);
+      const k=keyKeep(name)+'|'+keyKeep(ins);
       if(seen.has(k)){names[i].classList.add('invalid');hasError=true;}
       seen.add(k);
       workshopList.push({room,name,instructor:ins,capacity:cap});
@@ -700,7 +588,7 @@ try{
     if(hasError){wkErrors.textContent='Please fix highlighted fields.';wkErrors.classList.remove('hidden');return;}
 
     workshopList.sort((a,b)=>a.name.localeCompare(b.name) || a.instructor.localeCompare(b.instructor));
-    rebuildWorkshopKeyMaps();
+    rebuildWorkshopMaps();
 
     document.querySelectorAll('.wkInstructor,.wkName,.wkCap,.wkRoom,.wkDel').forEach(el=>{ if('disabled' in el) el.disabled=true; });
     wkFieldset.classList.add('locked'); lockNote.classList.remove('hidden');
@@ -716,12 +604,8 @@ try{
     if(enable){ studentDrop.setAttribute('tabindex','0'); } else { studentDrop.removeAttribute('tabindex'); }
   }
 
-  /* ---------- Student import ---------- */
-  const normHeader = (h) => normalize(h).toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu,' ')
-    .replace(/\s+/g,' ')
-    .trim();
-
+  /* Students import */
+  const normHeader = (h) => normalize(h).toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').replace(/\s+/g,' ').trim();
   const hasTokens = (hdrTok, must=[], forbid=[])=>{
     const set = new Set(hdrTok.split(' ').filter(Boolean));
     for(const m of must){ if(!set.has(m)) return false; }
@@ -729,17 +613,13 @@ try{
     return true;
   };
   function indexOfHeader(hdr, predicate){
-    for(let i=0;i<hdr.length;i++){
-      if (predicate(normHeader(hdr[i]??''))) return i;
-    }
+    for(let i=0;i<hdr.length;i++){ if (predicate(normHeader(hdr[i]??''))) return i; }
     return -1;
   }
 
   function buildStudents(rows){
     const list=[];
-    const hdrRaw=(rows[0]||[]).map(c=>String(c||''));
-    const hdrNorm=hdrRaw.map(normHeader);
-
+    const hdrRaw=(rows[0]||[]).map(c=>String(c||'')); const hdrNorm=hdrRaw.map(normHeader);
     let startIdx = hdrNorm.length ? 1 : 0;
 
     const lastIdx  = indexOfHeader(hdrRaw, h => hasTokens(normHeader(h), ['last','name']) || normHeader(h)==='last');
@@ -789,13 +669,8 @@ try{
   function detectStudentIssues(s){
     const issues=[];
     if (s.preferences.some(p => !normalize(p))) issues.push('Missing one or more choices');
-    const mapped = s.preferences.map(p => {
-      const v = normalize(p);
-      return v ? findWorkshopIndexByName(v) : -1;
-    });
-    if (s.preferences.some((p, idx) => normalize(p) && mapped[idx] === -1)) {
-      issues.push('Unknown workshop name');
-    }
+    const mapped = s.preferences.map(p => { const v=normalize(p); return v ? findWorkshopIndexByName(v) : -1; });
+    if (s.preferences.some((p, idx) => normalize(p) && mapped[idx] === -1)) issues.push('Unknown workshop name');
     const real = mapped.filter(i => i !== -1);
     if (new Set(real).size < real.length) issues.push('Duplicate choices');
     return issues;
@@ -805,7 +680,7 @@ try{
     try{
       const name=(file?.name||'').toLowerCase();
       if(!name.endsWith('.csv')){alert('Please use a .csv file (not .xlsx).');return;}
-      const text=await readFileTextSmart(file);
+      const text=await readFileTextSmart(file);   // ← robust decode
       if(!text.trim()){alert('This CSV looks empty.');return;}
       const rows=parseCSV(text);
       if(!rows.length){alert('No rows found in CSV.');return;}
@@ -822,9 +697,7 @@ try{
 
   function issuesHTML(issues){
     if(!issues || !issues.length) return '';
-    return `<div class="issues" title="${issues.join(' • ')}">` +
-           issues.map(t=>`<span class="issue-pill">${t}</span>`).join('') +
-           `</div>`;
+    return `<div class="issues" title="${issues.join(' • ')}">` + issues.map(t=>`<span class="issue-pill">${t}</span>`).join('') + `</div>`;
   }
 
   function renderStudentsPreview(){
@@ -845,15 +718,11 @@ try{
     if(legend) legend.classList.toggle('hidden', !anyIssues);
   }
 
-  /* ---------- Assignment ---------- */
-  function hash32(str){
-    let h=2166136261>>>0;
-    for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=(h>>>0)*16777619>>>0;}
-    return h>>>0;
-  }
-  function stableLotteryOrder(candidates, seedStr){
+  /* Assignment */
+  function hash32(str){ let h=2166136261>>>0; for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=(h>>>0)*16777619>>>0;} return h>>>0; }
+  function stableLotteryOrder(cands, seedStr){
     const wsSeed = hash32(seedStr + '|' + runSeed);
-    return candidates.slice().sort((a,b)=>{
+    return cands.slice().sort((a,b)=>{
       const ka = (hash32(String(a.id) + '|' + runSeed) ^ wsSeed) >>> 0;
       const kb = (hash32(String(b.id) + '|' + runSeed) ^ wsSeed) >>> 0;
       if (ka !== kb) return ka - kb;
@@ -866,10 +735,7 @@ try{
   function assignStudents(){
     const cap=workshopList.map(w=>w.capacity);
     const fill=new Array(workshopList.length).fill(0);
-    assignMap=new Map();
-    assignedRows=[];
-    unplaced=[];
-
+    assignMap=new Map(); assignedRows=[]; unplaced=[];
     const unassigned = new Map(students.map(s=>[s.id,s]));
 
     function passAssign(rankIdx){
@@ -881,28 +747,19 @@ try{
         byWorkshop.get(idx).push(s);
       }
       for(const [idx, group] of byWorkshop){
-        const seats = cap[idx] - fill[idx];
-        if(seats<=0) continue;
+        const seats = cap[idx] - fill[idx]; if(seats<=0) continue;
         const ordered = stableLotteryOrder(group, workshopList[idx].name);
         const winners = ordered.slice(0, seats);
-        for(const s of winners){
-          assignMap.set(s.id, workshopList[idx].name);
-          unassigned.delete(s.id);
-          fill[idx]+=1;
-        }
+        for(const s of winners){ assignMap.set(s.id, workshopList[idx].name); unassigned.delete(s.id); fill[idx]+=1; }
       }
     }
-
     passAssign(0); passAssign(1); passAssign(2);
 
     const roomByName = new Map(workshopList.map(w => [w.name, w.room || '']));
     for(const s of students){
       const assigned = assignMap.get(s.id);
       if(assigned){
-        assignedRows.push({
-          last: s.last, first: s.first, school: s.school||'',
-          workshop: assigned, room: roomByName.get(assigned)||''
-        });
+        assignedRows.push({ last: s.last, first: s.first, school: s.school||'', workshop: assigned, room: roomByName.get(assigned)||'' });
       }
     }
 
@@ -915,10 +772,8 @@ try{
       if (!reason && picks.every(p=>!p)) reason='No valid choices';
       if (!reason && anyUnknown) reason='Unknown workshop name';
       if (!reason) reason='All choices are full';
-
       unplaced.push({id:s.id,last:s.last,first:s.first,school:s.school||'',preferences:s.preferences,reason});
     }
-
     return {fill};
   }
 
@@ -932,7 +787,7 @@ try{
   };
   document.getElementById('resetAll').onclick=()=>location.reload();
 
-  /* ---------- Report ---------- */
+  /* Report */
   function renderReport(fill){
     resultsCard.classList.remove('hidden');
     const totalCap=workshopList.reduce((a,w)=>a+w.capacity,0);
@@ -941,7 +796,6 @@ try{
     kvCapacity.textContent=String(totalCap);
     kvUnplaced.textContent=String(unplaced.length);
 
-    // Summary
     balanceTableBody.innerHTML='';
     const wsSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
     wsSorted.forEach(w=>{
@@ -951,7 +805,6 @@ try{
       balanceTableBody.appendChild(tr);
     });
 
-    // Assignments
     studentTableBody.innerHTML='';
     const seatedSorted=assignedRows.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const r of seatedSorted){
@@ -960,7 +813,6 @@ try{
       studentTableBody.appendChild(tr);
     }
 
-    // Rosters
     const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
     for(const r of assignedRows){ rosterMap.get(r.workshop).push({last:r.last, first:r.first, school:r.school}); }
 
@@ -970,12 +822,7 @@ try{
       const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
       const section=document.createElement('section'); section.className='roster-section';
       const header=document.createElement('div'); header.className='roster-header';
-      header.innerHTML = `
-        <span class="ws-name">${w.name}</span>
-        &nbsp;–&nbsp;<span class="instructor">${w.instructor}</span>
-        ${w.room?`&nbsp;&nbsp;<span class="room">${w.room}</span>`:''}
-        &nbsp;&nbsp;<span class="count">Assigned students: ${list.length}</span>
-      `;
+      header.innerHTML = `<span class="ws-name">${w.name}</span>&nbsp;–&nbsp;<span class="instructor">${w.instructor}</span>${w.room?`&nbsp;&nbsp;<span class="room">${w.room}</span>`:''}&nbsp;&nbsp;<span class="count">Assigned students: ${list.length}</span>`;
       section.appendChild(header);
       const grid=document.createElement('div'); grid.className='name-grid';
       list.forEach(s=>{
@@ -988,7 +835,6 @@ try{
       rosterDoc.appendChild(section);
     });
 
-    // Unplaced
     unplacedTableBody.innerHTML='';
     const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const u of unSorted){
@@ -998,10 +844,9 @@ try{
     }
   }
 
-  /* ---------- Export helpers ---------- */
+  /* Export helpers */
   function toCSVFromTable(tableId) {
-    const t = document.getElementById(tableId);
-    if (!t) return '';
+    const t = document.getElementById(tableId); if (!t) return '';
     const rows = [...t.querySelectorAll('tr')];
     const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
     return rows.map(r => [...r.children].map(c => esc(c.innerText || c.textContent || '')).join(',')).join('\r\n');
@@ -1012,73 +857,23 @@ try{
   }
 
   function exportToPDF(title, html) {
-    const lib = window.html2pdf;
-    if(!lib){ alert('PDF library did not load. Try again or check your network.'); return; }
-    const host = document.createElement('div');
-    host.style.position='fixed'; host.style.top='0'; host.style.left='0';
-    host.style.zIndex='-1'; host.style.visibility='hidden'; host.style.width='100%';
-    document.body.appendChild(host);
-
-    const pdfStyles = `
-      html, body { margin:0; padding:0; }
-      * { box-sizing: border-box; }
-      h1 { font: 600 16pt Inter, Arial, sans-serif; margin: 0 0 10pt 0; color:#1f2430; }
-      h2 { font: 600 12pt Inter, Arial, sans-serif; margin: 14pt 0 6pt 0; color:#461D7C; }
-      h2 small { font-weight:400; color:#6b7280; }
-      .pdf-page{ break-inside: avoid; }
-      .pdf-page + .pdf-page{ break-before: page; }
-      table { width:100%; }
-      table.report { border-collapse: separate; border-spacing: 0; border: 1px solid #d1d5db; border-radius: 10px; background: #fff; }
-      thead { display: table-header-group; }
-      .report thead th { background:#f8fafc; font-weight:600; }
-      .report th, .report td { border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; padding:7pt 8pt; line-height:1.25; vertical-align: top; text-align: left; }
-      .report th:last-child, .report td:last-child { border-right:0 }
-      .report tr:last-child td { border-bottom:0 }
-      .summary-table th:nth-child(3), .summary-table td:nth-child(3),
-      .summary-table th:nth-child(4), .summary-table td:nth-child(4){ text-align:right; font-variant-numeric:tabular-nums; }
-      .summary-table th:nth-child(5), .summary-table td:nth-child(5){ white-space:nowrap; }
-    `;
-
-    const container = document.createElement('div');
-    container.style.width = '7.5in'; container.style.margin = '0'; container.style.padding = '0';
-    container.innerHTML = `<style>${pdfStyles}</style><h1>${title}</h1>${html}`;
-    host.appendChild(container);
-
-    const opt = {
-      margin: [36, 36, 36, 36],
-      filename: `${title.toLowerCase().replace(/\s+/g, '_')}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0, scrollX: 0 },
-      jsPDF: { unit: 'pt', format: 'letter', orientation: 'portrait' },
-      pagebreak: { mode: ['css'] }
-    };
-
-    lib().set(opt).from(container).toPdf().get('pdf').then(pdf=>{
-      const url = pdf.output('bloburl'); window.open(url, '_blank');
-    }).finally(()=>host.remove());
-  }
-
-  function exportTablesAsPDF(title, items){
-    let html = "";
-    items.forEach(({id, label})=>{
-      const t=document.getElementById(id);
-      if(!t) return;
-      html += `<h2>${label}</h2><table class="report">${t.tHead.outerHTML}${t.tBodies[0].outerHTML}</table>`;
-    });
-    exportToPDF(title, html);
+    const lib = window.html2pdf; if(!lib){ alert('PDF library did not load. Try again or check your network.'); return; }
+    const host = document.createElement('div'); host.style.position='fixed'; host.style.top='0'; host.style.left='0'; host.style.zIndex='-1'; host.style.visibility='hidden'; host.style.width='100%'; document.body.appendChild(host);
+    const pdfStyles = `html, body { margin:0; padding:0; } * { box-sizing: border-box; } h1 { font: 600 16pt Inter, Arial, sans-serif; margin: 0 0 10pt 0; color:#1f2430; } h2 { font: 600 12pt Inter, Arial, sans-serif; margin: 14pt 0 6pt 0; color:#461D7C; } h2 small { font-weight:400; color:#6b7280; } .pdf-page{ break-inside: avoid; } .pdf-page + .pdf-page{ break-before: page; } table { width:100%; } table.report { border-collapse: separate; border-spacing: 0; border: 1px solid #d1d5db; border-radius: 10px; background: #fff; } thead { display: table-header-group; } .report thead th { background:#f8fafc; font-weight:600; } .report th, .report td { border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; padding:7pt 8pt; line-height:1.25; vertical-align: top; text-align: left; } .report th:last-child, .report td:last-child { border-right:0 } .report tr:last-child td { border-bottom:0 } .summary-table th:nth-child(3), .summary-table td:nth-child(3), .summary-table th:nth-child(4), .summary-table td:nth-child(4){ text-align:right; font-variant-numeric:tabular-nums; } .summary-table th:nth-child(5), .summary-table td:nth-child(5){ white-space:nowrap; }`;
+    const container = document.createElement('div'); container.style.width='7.5in'; container.style.margin='0'; container.style.padding='0'; container.innerHTML = `<style>${pdfStyles}</style><h1>${title}</h1>${html}`; host.appendChild(container);
+    const opt = { margin:[36,36,36,36], filename:`${title.toLowerCase().replace(/\s+/g,'_')}.pdf`, image:{ type:'jpeg', quality:0.98 }, html2canvas:{ scale:2, useCORS:true, letterRendering:true, scrollY:0, scrollX:0 }, jsPDF:{ unit:'pt', format:'letter', orientation:'portrait' }, pagebreak:{ mode:['css'] } };
+    lib().set(opt).from(container).toPdf().get('pdf').then(pdf=>{ const url = pdf.output('bloburl'); window.open(url, '_blank'); }).finally(()=>host.remove());
   }
 
   if (printStudentsBtn) {
-    printStudentsBtn.onclick = () => exportTablesAsPDF('Students (Choices)', [{id: 'studentsTable', label: 'Students and choices'}]);
+    printStudentsBtn.onclick = () => exportToPDF('Students (Choices)', `<table class="report">${document.getElementById('studentsTable').tHead.outerHTML}${document.getElementById('studentsTable').tBodies[0].outerHTML}</table>`);
     exportStudentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentsTable'), 'students.csv');
   }
-  printSummaryBtn.onclick = () => exportTablesAsPDF('Summary', [{id: 'balanceTable', label: 'Workshop capacities & assignments'}]);
+  printSummaryBtn.onclick = () => exportToPDF('Summary', `<table class="report">${document.getElementById('balanceTable').tHead.outerHTML}${document.getElementById('balanceTable').tBodies[0].outerHTML}</table>`);
   exportSummaryCsvBtn.onclick = () => downloadCSV(toCSVFromTable('balanceTable'), 'summary.csv');
-
-  printAssignmentsBtn.onclick = () => exportTablesAsPDF('Student Assignments', [{id: 'studentTable', label: 'Assignments'}]);
+  printAssignmentsBtn.onclick = () => exportToPDF('Student Assignments', `<table class="report">${document.getElementById('studentTable').tHead.outerHTML}${document.getElementById('studentTable').tBodies[0].outerHTML}</table>`);
   exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
-
-  printRostersBtn.onclick = () => exportToPDF('Workshop Rosters', `<div class="pdf-roster">${rosterDoc.innerHTML}</div>`);
+  printRostersBtn.onclick = () => exportToPDF('Workshop Rosters', `<div class="pdf-roster">${document.getElementById('rosterDoc').innerHTML}</div>`);
   exportRostersCsvBtn.onclick = () => {
     const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
     const rows = [['Workshop','Instructor','Room','Assigned count','Student','School']];
@@ -1087,20 +882,14 @@ try{
     const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
     roSorted.forEach(w=>{
       const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
-      if(list.length===0){
-        rows.push([w.name, w.instructor, w.room||'', '0', '', '']);
-      }else{
-        list.forEach((s)=> rows.push([w.name, w.instructor, w.room||'', String(list.length), `${s.last}, ${s.first}`, s.school||'']));
-      }
+      if(list.length===0){ rows.push([w.name, w.instructor, w.room||'', '0', '', '']); }
+      else{ list.forEach((s)=> rows.push([w.name, w.instructor, w.room||'', String(list.length), `${s.last}, ${s.first}`, s.school||''])); }
     });
-    const csv = rows.map(r=>r.map(esc).join(',')).join('\r\n');
-    downloadCSV(csv,'rosters.csv');
+    const csv = rows.map(r=>r.map(esc).join(',')).join('\r\n'); downloadCSV(csv,'rosters.csv');
   };
-
-  printUnplacedBtn.onclick = () => exportTablesAsPDF('Unplaced Students', [{id: 'unplacedTable', label: 'Unplaced'}]);
+  printUnplacedBtn.onclick = () => exportToPDF('Unplaced Students', `<table class="report">${document.getElementById('unplacedTable').tHead.outerHTML}${document.getElementById('unplacedTable').tBodies[0].outerHTML}</table>`);
   exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
 
-  /* ---------- Tabs ---------- */
   function setTab(which) {
     [tabSummary, tabStudents, tabRosters, tabUnplaced].forEach(t => t.classList.remove('active'));
     [panelSummary, panelStudents, panelRosters, panelUnplaced].forEach(p => p.classList.add('hidden'));
@@ -1113,12 +902,7 @@ try{
   tabStudents.onclick = () => setTab('students');
   tabRosters.onclick = () => setTab('rosters');
   tabUnplaced.onclick = () => setTab('unplaced');
-
-}catch(err){
-  console.error(err);
-  showInitError(err && err.message ? err.message : String(err));
-}
+}catch(err){ console.error(err); showInitError(err && err.message ? err.message : String(err)); }
 </script>
-
 </body>
 </html>
