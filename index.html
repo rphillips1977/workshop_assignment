@@ -384,7 +384,6 @@ try{
   });
 
   /* ---------- Normalization + fuzzy ---------- */
-  // normalize keeps apostrophes for display, converts smart quotes to straight '
   const normalize=(s)=>{
     let t = s == null ? '' : String(s);
     t = t.replace(/^\uFEFF/, '');               // BOM
@@ -393,15 +392,32 @@ try{
     t = t.replace(/\s+/g,' ').replace(/\s*[.,:;!?]+$/,'').trim();
     return t;
   };
-  // key used for matching: punctuation (incl. apostrophes) removed so "Whats" and "What's" match
   const key=(s)=> normalize(s).toLowerCase()
-    .replace(/[^a-z0-9 -]/g,'')  // strip punctuation incl. apostrophes
+    .replace(/[^a-z0-9' -]/g,'')  // keep apostrophes, dash, space
     .replace(/\bthe\b/g,'')
     .replace(/\s+/g,' ')
     .trim();
 
   const tokens=(s)=> key(s).split(' ').filter(Boolean);
   const jaccard=(a,b)=>{const A=new Set(a),B=new Set(b);let inter=0;for(const x of A){if(B.has(x)) inter++;}return inter/(new Set([...A,...B]).size||1);};
+
+  // fast Levenshtein ratio for strings up to ~200 chars
+  function levRatio(a,b){
+    a=key(a); b=key(b);
+    const m=a.length,n=b.length; if(m===0&&n===0) return 1; if(m===0||n===0) return 0;
+    let prev=new Array(n+1), curr=new Array(n+1);
+    for(let j=0;j<=n;j++) prev[j]=j;
+    for(let i=1;i<=m;i++){
+      curr[0]=i;
+      const ai=a.charCodeAt(i-1);
+      for(let j=1;j<=n;j++){
+        const cost = (ai===b.charCodeAt(j-1)) ? 0 : 1;
+        curr[j]=Math.min(prev[j]+1, curr[j-1]+1, prev[j-1]+cost);
+      }
+      [prev,curr]=[curr,prev];
+    }
+    const dist=prev[n]; return 1 - dist/Math.max(m,n);
+  }
 
   // Build a fast exact-lookup map for workshops
   let wsKeyToIndex = new Map();
@@ -414,11 +430,21 @@ try{
     if(!name) return -1;
     const k = key(name);
     if(wsKeyToIndex.has(k)) return wsKeyToIndex.get(k);   // exact key match first
-    // fuzzy fallback
+
+    // fuzzy fallback: token Jaccard, substring containment, Levenshtein ratio
     const t = tokens(name);
     let best = {idx:-1, score:0};
-    workshopList.forEach((w,i)=>{ const score=jaccard(t,tokens(w.name)); if(score>best.score) best={idx:i,score}; });
-    return best.score >= 0.6 ? best.idx : -1;
+
+    for(let i=0;i<workshopList.length;i++){
+      const w=workshopList[i];
+      const wKey=key(w.name);
+      const scoreJ=jaccard(t,tokens(w.name));
+      const contain = (wKey.includes(k) || k.includes(wKey)) ? Math.min(wKey.length,k.length)/Math.max(wKey.length,k.length) : 0;
+      const scoreL=levRatio(k,wKey);
+      const score = Math.max(scoreJ, contain, scoreL);
+      if(score>best.score) best={idx:i,score};
+    }
+    return best.score >= 0.62 ? best.idx : -1;
   }
 
   const enableRunIfReady=()=>{ runBtn.disabled=!(locked && students.length>0); };
@@ -478,7 +504,7 @@ try{
   function newRow({instructor='',name='',capacity='12',room=''}={}){
     const row=document.createElement('div');
     row.className='five wkRow';
-    row.innerHTML=`<input type="text" class="wkInstructor" placeholder="Instructor name" value="${name ? '' : ''}${instructor}">
+    row.innerHTML=`<input type="text" class="wkInstructor" placeholder="Instructor name" value="${instructor}">
       <input type="text" class="wkName" placeholder="Workshop" value="${name}">
       <input type="number" class="wkCap" min="1" value="${capacity}">
       <input type="text" class="wkRoom" placeholder="e.g., BH 101 (optional)" value="${room}">
@@ -528,6 +554,7 @@ try{
     setWorkshopControlsEnabled(true); lockWorkshops.textContent='Lock workshops and continue'; lockWorkshops.disabled=false;
     document.querySelectorAll('.wkInstructor,.wkName,.wkCap,.wkRoom,.wkDel').forEach(el=>{ if('disabled' in el) el.disabled=false; });
     deletedStack=[]; updateUndoState(); enableRunIfReady();
+    workshopList=[]; wsKeyToIndex.clear();
   };
 
   /* ---------- CSV helpers ---------- */
@@ -537,8 +564,8 @@ try{
     return out;
   }
   function parseCSV(text){
-    const lines=text.split(/\r?\n/).map(s=>s.replace(/^\uFEFF/, '').trim()).filter(Boolean);
-    const rows=[]; for(const l of lines) rows.push(splitCSV(l).map(c=>c.trim())); return rows;
+    const lines=text.split(/\r?\n/).map(s=>s.replace(/^\uFEFF/, '').trim()); // keep empty cells but drop empty lines
+    const rows=[]; for(const l of lines){ if(!l) continue; rows.push(splitCSV(l).map(c=>c.trim())); } return rows;
   }
   const extractInt=(str)=>{ if(str==null) return null; const m=String(str).match(/-?\d+/); if(!m) return null; const n=parseInt(m[0],10); return Number.isFinite(n)?n:null; };
 
@@ -586,7 +613,6 @@ try{
         const rawC = cIdx!=null ? row[cIdx] : '';
         const rawR = rIdx!=null ? row[rIdx] : '';
 
-        // preserve apostrophes for display; normalize smart quotes to straight '
         const name = normalize(rawW);
         const instructor = normalize(rawI);
         const room = normalize(rawR || '');
@@ -730,12 +756,10 @@ try{
     return list;
   }
 
-  // FIXED: precise issue detection (no false "Unknown" chips)
+  // precise issue detection
   function detectStudentIssues(s){
     const issues=[];
-    // missing
     if (s.preferences.some(p => !normalize(p))) issues.push('Missing one or more choices');
-    // unknown + duplicate (after mapping)
     const mapped = s.preferences.map(p => {
       const v = normalize(p);
       return v ? findWorkshopIndexByName(v) : -1;
@@ -750,6 +774,7 @@ try{
 
   async function importStudentsFromFile(file){
     try{
+      if(!locked){ alert('Lock workshops first.'); return; } // why: ensures map exists, avoids false "unknown"
       const name=(file?.name||'').toLowerCase();
       if(!name.endsWith('.csv')){alert('Please use a .csv file (not .xlsx).');return;}
       const text=await file.text();
