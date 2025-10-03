@@ -128,7 +128,6 @@ table.report{
 }
 .name:last-child{ border-bottom:0 }
 
-/* Fallback if JS dies early */
 .nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
 
 @media print{.header,.tabs,.printbar,.badge{display:none !important}}
@@ -161,7 +160,7 @@ table.report{
     </div>
     <div class="two" style="margin-top:10px">
       <div>
-        <label class="small">Upload Workshops CSV (Instructor, Workshop, Room, Capacity)</label>
+        <label class="small">Upload Workshops CSV (Instructor, Workshop, [Room], [Capacity])</label>
         <input id="workshopCsvFile" type="file" accept=".csv">
       </div>
       <div id="workshopDrop" class="dropzone" tabindex="0" role="button" aria-label="Drop workshops CSV here or click to browse">Drag and drop Workshops CSV here</div>
@@ -191,7 +190,7 @@ table.report{
       <div>
         <label class="small">
           Upload CSV with columns: Last, First, School, Choice1, Choice2, Choice3
-          <br>(School is optional. Also supports legacy Student, Choice1, Choice2, Choice3)
+          <br>(Also supports legacy “Student, Choice1, Choice2, Choice3”)
         </label>
         <input id="csvFile" type="file" accept=".csv" disabled>
       </div>
@@ -312,16 +311,12 @@ function showInitError(msg){
 }
 
 try{
-  // Global DnD guard (preserves behavior outside dropzones)
+  // Guard default page drag events (only our dropzones should handle drops)
   ['dragenter','dragover','drop'].forEach(evt=>{
     document.addEventListener(evt, e=>{
       if (e.target && e.target.closest && e.target.closest('.dropzone')) return;
-      if (evt !== 'drop') {
-        e.preventDefault();
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'none';
-      } else {
-        e.preventDefault();
-      }
+      if (evt !== 'drop') { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'; }
+      else { e.preventDefault(); }
     }, {passive:false});
   });
 
@@ -374,8 +369,8 @@ try{
   if(!numWorkshops || !buildWorkshopRows || !wkContainer){ showInitError('Missing core DOM nodes.'); throw new Error('missing anchors'); }
 
   let locked=false;
-  let workshopList=[];
-  let students=[];
+  let workshopList=[];  // {name, instructor, room, capacity}
+  let students=[];      // {id,last,first,school,label,preferences}
   let assignMap=new Map();   // id -> workshop name (seated only)
   let assignedRows=[];       // seated rows for rendering/exports
   let unplaced=[];           // not seated + reason
@@ -386,21 +381,58 @@ try{
     document.getElementById('appRoot')?.setAttribute('aria-busy','false');
   });
 
-  // normalization
+  /* ---------- Normalization + fuzzy matching ---------- */
   const normalize=(s)=>{
     let t = s == null ? '' : String(s).trim();
-    t = t.replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[‐-–—]/g,'-').replace(/\s+/g,' ').replace(/\s*[?.!]+$/,'');
+    // unify quotes/dashes & punctuation noise
+    t = t.replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[‐-–—]/g,'-');
+    // unify ampersand/and
+    t = t.replace(/\s*&\s*/gi,' and ');
+    // squeeze spaces and strip trailing punctuation
+    t = t.replace(/\s+/g,' ').replace(/\s*[.,:;!?]+$/,'').trim();
     return t;
   };
-  const key=(s)=> normalize(s).toLowerCase().replace(/[^a-z0-9 &-]/g,'').replace(/\s+/g,' ').trim();
+  // Canonical key for exact matching
+  const key=(s)=> normalize(s).toLowerCase()
+    .replace(/[^a-z0-9 -]/g,'')   // keep letters, numbers, spaces, hyphen
+    .replace(/\bthe\b/g,'')       // drop lead articles
+    .replace(/\s+/g,' ')
+    .trim();
+
+  // Tokenizer for fuzzy match
+  const tokens=(s)=> key(s).split(' ').filter(Boolean);
+  const jaccard=(a,b)=>{
+    const A=new Set(a), B=new Set(b);
+    let inter=0; for(const x of A){ if(B.has(x)) inter++; }
+    const uni=new Set([...A,...B]).size || 1;
+    return inter/uni;
+  };
+
+  // find best workshop index for a given free-form name
+  function findWorkshopIndexByName(name){
+    if(!name) return -1;
+    const k = key(name);
+    // 1) exact
+    const exactIdx = workshopList.findIndex(w => key(w.name) === k);
+    if(exactIdx !== -1) return exactIdx;
+    // 2) fuzzy (Jaccard token similarity on names)
+    const t = tokens(name);
+    let best = {idx:-1, score:0};
+    workshopList.forEach((w,i)=>{
+      const score = jaccard(t, tokens(w.name));
+      if(score > best.score) best = {idx:i, score};
+    });
+    // threshold tuned for your “Design” vs “Designing”, punctuation, etc.
+    return best.score >= 0.6 ? best.idx : -1;
+  }
 
   const enableRunIfReady=()=>{ runBtn.disabled=!(locked && students.length>0); };
 
   let runSeed='';
   const makeSeed=()=>{ try{const a=new Uint32Array(2);crypto.getRandomValues(a);return a[0]+'-'+a[1];}catch(_){return Date.now()+'-'+Math.floor(Math.random()*1e9)}};
-  const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); console.log('Draw seed:',runSeed); };
+  const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); };
 
-  // robust drop handlers (kept from your layout; also syncs to <input>)
+  /* ---------- Drop handlers ---------- */
   function setDropHandlers({zone, onFile, input, acceptExts=['.csv']}){
     if(!zone) return;
     let dragDepth = 0;
@@ -416,42 +448,13 @@ try{
       try{ const types = dt && dt.types ? Array.from(dt.types) : []; return !types.length || types.includes('Files'); }
       catch{ return true; }
     };
-    const pickFile = (dt)=>{
-      if (dt?.files?.length) return dt.files[0];
-      if (dt?.items?.length){
-        for (const it of dt.items){ if (it.kind==='file'){ const f=it.getAsFile?.(); if(f) return f; } }
-      }
-      return null;
-    };
-    const isAccepted = (file)=>{
-      const lname=(file?.name||'').toLowerCase();
-      return acceptExts.length===0 || acceptExts.some(ext=>lname.endsWith(ext));
-    };
+    const pickFile = (dt)=> dt?.files?.[0] || null;
+    const isAccepted = (file)=> acceptExts.some(ext => (file?.name||'').toLowerCase().endsWith(ext));
 
-    zone.addEventListener('dragenter', (e)=>{
-      if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return;
-      e.preventDefault(); dragDepth++; highlight();
-    }, {passive:false});
-    zone.addEventListener('dragover', (e)=>{
-      if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return;
-      e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='copy';
-    }, {passive:false});
-    zone.addEventListener('dragleave', (e)=>{
-      if(isDisabled()) return; e.preventDefault();
-      dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0) unhighlight();
-    }, {passive:false});
-    zone.addEventListener('drop', (e)=>{
-      if(isDisabled()) return; e.preventDefault(); dragDepth=0; unhighlight();
-      const file=pickFile(e.dataTransfer);
-      if(!file){ alert('No file found in drop. Please drop a CSV file.'); return; }
-      if(!isAccepted(file)){ alert('Please drop a .csv file.'); return; }
-      if (input) {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        input.files = dt.files;
-      }
-      onFile(file);
-    }, {passive:false});
+    zone.addEventListener('dragenter', (e)=>{ if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return; e.preventDefault(); dragDepth++; highlight(); }, {passive:false});
+    zone.addEventListener('dragover',  (e)=>{ if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return; e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='copy'; }, {passive:false});
+    zone.addEventListener('dragleave', (e)=>{ if(isDisabled()) return; e.preventDefault(); dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0) unhighlight(); }, {passive:false});
+    zone.addEventListener('drop',      (e)=>{ if(isDisabled()) return; e.preventDefault(); dragDepth=0; unhighlight(); const f=pickFile(e.dataTransfer); if(!f){ alert('Drop a .csv file.'); return; } if(!isAccepted(f)){ alert('Please drop a .csv file.'); return; } if(input){ const dt=new DataTransfer(); dt.items.add(f); input.files=dt.files; } onFile(f); }, {passive:false});
   }
 
   function setWorkshopControlsEnabled(enabled){
@@ -535,33 +538,29 @@ try{
     deletedStack=[]; updateUndoState(); enableRunIfReady();
   };
 
-  // CSV utils
+  /* ---------- CSV helpers ---------- */
   function splitCSV(line){
-    const out=[];
-    const regex=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g;
-    let m;
-    while((m=regex.exec(line))){ out.push(m[1]?m[1].replace(/""/g,'"'):m[2]); if(!m[3]) break; }
+    const out=[], re=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g; let m;
+    while((m=re.exec(line))){ out.push(m[1]?m[1].replace(/""/g,'"'):m[2]); if(!m[3]) break; }
     return out;
   }
   function parseCSV(text){
-    const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-    const rows=[];
-    for(const l of lines) rows.push(splitCSV(l).map(c=>c.trim()));
-    return rows;
+    const lines=text.split(/\r?\n/).map(s=>s.replace(/^\uFEFF/, '').trim()).filter(Boolean);
+    const rows=[]; for(const l of lines) rows.push(splitCSV(l).map(c=>c.trim())); return rows;
   }
-  function extractInt(str){ if(str==null) return null; const m=String(str).match(/-?\d+/); if(!m) return null; const n=parseInt(m[0],10); return Number.isFinite(n)?n:null; }
+  const extractInt=(str)=>{ if(str==null) return null; const m=String(str).match(/-?\d+/); if(!m) return null; const n=parseInt(m[0],10); return Number.isFinite(n)?n:null; };
 
   // Detect columns for Workshops CSV (supports headerless: [Instructor, Workshop, Room, Capacity])
   function detectWorkshopColumns(rows){
     if(!rows.length) return {wIdx:0,iIdx:1,cIdx:null,rIdx:null,startIdx:0};
     const hdr = rows[0].map(c => String(c ?? '').toLowerCase());
-    const hasHeaderToken = (h)=> /(^|\b)(workshop|instructor|capacit|room|location|rm)(\b|$)/.test(h);
+    const hasHeaderToken = (h)=> /(^|\b)(workshop|instructor|capacit|room|location|rm|seats|size|max|capacity|#)(\b|$)/.test(h);
     if (hdr.some(hasHeaderToken)) {
       const findIdx=(rxs)=> hdr.findIndex(h=>rxs.some(rx=>rx.test(h)));
-      let wIdx=findIdx([/workshop/]),
-          iIdx=findIdx([/instructor/]),
-          cIdx=findIdx([/capacit/,/^cap$/,/(max|seats|size)/]),
-          rIdx=findIdx([/room\s*#?/,/room number/,/^room$/,/(location|^rm$|rm\.)/]);
+      let wIdx=findIdx([/workshop|title|session|class/]),
+          iIdx=findIdx([/instructor|teacher|presenter/]),
+          cIdx=findIdx([/capacit|seats|size|max|#$/]),
+          rIdx=findIdx([/room\s*#?|room number|^room$|location|^rm$|rm\./]);
       if(wIdx===-1) wIdx=(iIdx===0?1:0);
       if(iIdx===-1) iIdx=(wIdx===0?1:0);
       if(cIdx===-1) cIdx=null;
@@ -583,7 +582,6 @@ try{
       if(!fname.endsWith('.csv')){alert('Please use a .csv file for workshops (not .xlsx).');return;}
       const text=await file.text();
       const rows=parseCSV(text);
-      if(rows.length && rows[0].length){ rows[0][0]=String(rows[0][0]).replace(/^\uFEFF/,''); }
       if(rows.length===0){alert('No rows found');return;}
 
       const {wIdx,iIdx,cIdx,rIdx,startIdx}=detectWorkshopColumns(rows);
@@ -667,7 +665,7 @@ try{
     if(enable){ studentDrop.setAttribute('tabindex','0'); } else { studentDrop.removeAttribute('tabindex'); }
   }
 
-  // Student CSV: detect Last, First, School, Choice1..3; or legacy Student, Choice1..3
+  /* ---------- Students CSV ---------- */
   function buildStudents(rows){
     const list=[];
     const hdr=(rows[0]||[]).map(c=>String(c||'').toLowerCase());
@@ -682,19 +680,19 @@ try{
       const sIdx = findIdx([/^school$/, /high\s*school/, /school\s*name/, /^campus$/, /^hs$/]);
       if (sIdx !== -1) { idx.school = sIdx; mode='legacy-plus'; }
     }else if(hdr.length){
-      const lastIdx = findIdx([/^last$/, /last\s*name/]);
-      const firstIdx = findIdx([/^first$/, /first\s*name/]);
-      const schoolIdx= findIdx([/^school$/, /high\s*school/, /school\s*name/, /^campus$/, /^hs$/]);
-      const c1Idx = findIdx([/^choice\s*1$/, /^choice1$/, /^first\s*choice$/, /^1st\s*choice$/]);
-      const c2Idx = findIdx([/^choice\s*2$/, /^choice2$/, /^second\s*choice$/, /^2nd\s*choice$/]);
-      const c3Idx = findIdx([/^choice\s*3$/, /^choice3$/, /^third\s*choice$/, /^3rd\s*choice$/]);
+      const lastIdx = findIdx([/^last$|last\s*name|surname/]);
+      const firstIdx = findIdx([/^first$|first\s*name|given/]);
+      const schoolIdx= findIdx([/^school$|high\s*school|school\s*name|^campus$|^hs$/]);
+      const c1Idx = findIdx([/^choice\s*1$|^choice1$|^first\s*choice$|^1st\s*choice$|^preference\s*1$/]);
+      const c2Idx = findIdx([/^choice\s*2$|^choice2$|^second\s*choice$|^2nd\s*choice$|^preference\s*2$/]);
+      const c3Idx = findIdx([/^choice\s*3$|^choice3$|^third\s*choice$|^3rd\s*choice$|^preference\s*3$/]);
       idx.last = lastIdx !== -1 ? lastIdx : 0;
       idx.first = firstIdx !== -1 ? firstIdx : 1;
       idx.school = schoolIdx !== -1 ? schoolIdx : null;
       idx.c1 = c1Idx !== -1 ? c1Idx : 2;
       idx.c2 = c2Idx !== -1 ? c2Idx : 3;
       idx.c3 = c3Idx !== -1 ? c3Idx : 4;
-      if (hdr.some(h => /(last|first|choice|school)/.test(h))) startIdx=1;
+      if (hdr.some(h => /(last|first|choice|school|preference)/.test(h))) startIdx=1;
     }
 
     for(let i=startIdx;i<rows.length;i++){
@@ -719,21 +717,17 @@ try{
     return list;
   }
 
-  function validWorkshopKeySet(){
-    const set=new Set();
-    for(const w of workshopList) set.add(key(w.name));
-    return set;
-  }
   function detectStudentIssues(s){
-    const [c1,c2,c3]=s.preferences.map(normalize);
+    const cIdx = s.preferences.map(p => findWorkshopIndexByName(p));
     const issues=[];
-    if ((c1 && c2 && c1===c2) || (c1 && c3 && c1===c3) || (c2 && c3 && c2===c3)) {
-      issues.push('Duplicate choices');
-    }
-    if(!c1 || !c2 || !c3) issues.push('Missing one or more choices');
-    const valid=validWorkshopKeySet();
-    const bad=[c1,c2,c3].filter(v=>v && !valid.has(key(v)));
-    if(bad.length>0) issues.push('Unknown workshop name');
+    // missing
+    if(s.preferences.some(p=>!normalize(p))) issues.push('Missing one or more choices');
+    // unknowns
+    const unknowns = cIdx.filter(i => (i === -1) && normalize(s.preferences[cIdx.indexOf(i)]));
+    if(unknowns.length) issues.push('Unknown workshop name');
+    // duplicates (same mapped index)
+    const mapped = cIdx.filter(i=>i!==-1);
+    if(new Set(mapped).size < mapped.length) issues.push('Duplicate choices');
     return issues;
   }
 
@@ -781,7 +775,7 @@ try{
     if(legend) legend.classList.toggle('hidden', !anyIssues);
   }
 
-  // Assignment helpers
+  /* ---------- Assignment ---------- */
   function hash32(str){
     let h=2166136261>>>0;
     for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=(h>>>0)*16777619>>>0;}
@@ -799,28 +793,20 @@ try{
     });
   }
 
-  // *** FIXED CORE LOGIC: keep assignedRows (seated) and unplaced (not seated) ***
   function assignStudents(){
-    const nameToIdx=new Map();
-    workshopList.forEach((w,i)=>nameToIdx.set(key(w.name),i));
-
     const cap=workshopList.map(w=>w.capacity);
     const fill=new Array(workshopList.length).fill(0);
     assignMap=new Map();
     assignedRows=[];
     unplaced=[];
 
-    // Start with every student unassigned
     const unassigned = new Map(students.map(s=>[s.id,s]));
 
-    // three ranked passes
     function passAssign(rankIdx){
       const byWorkshop = new Map();
       for(const s of unassigned.values()){
-        const choice = s.preferences[rankIdx] || '';
-        const k = key(choice);
-        if(!choice || !nameToIdx.has(k)) continue; // invalid/blank choice
-        const idx = nameToIdx.get(k);
+        const idx = findWorkshopIndexByName(s.preferences[rankIdx] || '');
+        if(idx === -1) continue;
         if(!byWorkshop.has(idx)) byWorkshop.set(idx, []);
         byWorkshop.get(idx).push(s);
       }
@@ -839,7 +825,6 @@ try{
 
     passAssign(0); passAssign(1); passAssign(2);
 
-    // Build assignedRows from assignMap only (no blanks)
     const roomByName = new Map(workshopList.map(w => [w.name, w.room || '']));
     for(const s of students){
       const assigned = assignMap.get(s.id);
@@ -851,25 +836,18 @@ try{
       }
     }
 
-    // Whoever is left unassigned becomes unplaced with a reason
-    const validNames = new Set(workshopList.map(w=>key(w.name)));
+    // reasons for those left
     for(const s of unassigned.values()){
-      const picks = s.preferences.map(p=>p||'');
-      const normalized = picks.map(p=>key(p)).filter(Boolean);
-      const unknowns = normalized.filter(p=>!validNames.has(p));
+      const picks = s.preferences.map(p=>normalize(p));
+      const mapped = picks.map(p => p ? findWorkshopIndexByName(p) : -1);
       let reason = '';
+      const anyUnknown = mapped.some((i,idx) => i===-1 && picks[idx]);
+      if (s._issues && s._issues.length) reason = s._issues.join(', ');
+      if (!reason && picks.every(p=>!p)) reason='No valid choices';
+      if (!reason && anyUnknown) reason='Unknown workshop name';
+      if (!reason) reason='All choices are full';
 
-      if (s._issues && s._issues.length) {
-        reason = s._issues.join(', ');
-      }
-      if (!reason && normalized.length === 0) reason = 'No valid choices';
-      if (!reason && unknowns.length === normalized.length) reason = 'Unknown workshop name';
-      if (!reason) reason = 'All choices are full';
-
-      unplaced.push({
-        id:s.id, last:s.last, first:s.first, school:s.school||'',
-        preferences:picks, reason
-      });
+      unplaced.push({id:s.id,last:s.last,first:s.first,school:s.school||'',preferences:s.preferences,reason});
     }
 
     return {fill};
@@ -880,13 +858,12 @@ try{
     if(students.length===0){alert('Load students first');return;}
     setRunSeed();
     const {fill}=assignStudents();
-    // Clear preview issues before report
     students.forEach(s=>{ delete s._issues; });
     renderReport(fill);
   };
   document.getElementById('resetAll').onclick=()=>location.reload();
 
-  // *** FIXED RENDERING: bind tables to assignedRows & unplaced ***
+  /* ---------- Report ---------- */
   function renderReport(fill){
     resultsCard.classList.remove('hidden');
     const totalCap=workshopList.reduce((a,w)=>a+w.capacity,0);
@@ -895,18 +872,17 @@ try{
     kvCapacity.textContent=String(totalCap);
     kvUnplaced.textContent=String(unplaced.length);
 
-    // Summary / balance table
+    // Summary
     balanceTableBody.innerHTML='';
     const wsSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
     wsSorted.forEach(w=>{
-      // compute assigned count from assignedRows for this workshop
       const assignedCount = assignedRows.filter(r=>r.workshop===w.name).length;
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${w.instructor}</td><td>${w.name}</td><td>${w.capacity}</td><td>${assignedCount}</td><td>${w.room||''}</td>`;
+      tr.innerHTML = `<td>${w.instructor}</td><td>${w.name}</td><td>${w.capacity}</td><td>${assignedCount}</td><td>${w.room||''}</td>`;
       balanceTableBody.appendChild(tr);
     });
 
-    // Student assignments (seated only)
+    // Assignments
     studentTableBody.innerHTML='';
     const seatedSorted=assignedRows.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const r of seatedSorted){
@@ -915,7 +891,7 @@ try{
       studentTableBody.appendChild(tr);
     }
 
-    // Workshop rosters (from assignedRows only)
+    // Rosters
     const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
     for(const r of assignedRows){ rosterMap.get(r.workshop).push({last:r.last, first:r.first, school:r.school}); }
 
@@ -923,11 +899,8 @@ try{
     const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
     roSorted.forEach(w=>{
       const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
-      const section=document.createElement('section');
-      section.className='roster-section';
-
-      const header=document.createElement('div');
-      header.className='roster-header';
+      const section=document.createElement('section'); section.className='roster-section';
+      const header=document.createElement('div'); header.className='roster-header';
       header.innerHTML = `
         <span class="ws-name">${w.name}</span>
         &nbsp;–&nbsp;<span class="instructor">${w.instructor}</span>
@@ -935,12 +908,9 @@ try{
         &nbsp;&nbsp;<span class="count">Assigned students: ${list.length}</span>
       `;
       section.appendChild(header);
-
-      const grid=document.createElement('div');
-      grid.className='name-grid';
+      const grid=document.createElement('div'); grid.className='name-grid';
       list.forEach(s=>{
-        const item=document.createElement('div');
-        item.className='name';
+        const item=document.createElement('div'); item.className='name';
         const fullName = s.first ? `${s.last}, ${s.first}` : s.last;
         item.textContent = s.school ? `${fullName} — ${s.school}` : fullName;
         grid.appendChild(item);
@@ -949,7 +919,7 @@ try{
       rosterDoc.appendChild(section);
     });
 
-    // Unplaced table
+    // Unplaced
     unplacedTableBody.innerHTML='';
     const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
     for(const u of unSorted){
@@ -959,7 +929,7 @@ try{
     }
   }
 
-  // Exports
+  /* ---------- Export helpers ---------- */
   function toCSVFromTable(tableId) {
     const t = document.getElementById(tableId);
     if (!t) return '';
@@ -968,49 +938,24 @@ try{
     return rows.map(r => [...r.children].map(c => esc(c.innerText || c.textContent || '')).join(',')).join('\r\n');
   }
   function downloadCSV(csv, name) {
-    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = name; a.click();
-    URL.revokeObjectURL(url);
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
   }
 
   if (printStudentsBtn) {
-    printStudentsBtn.onclick = () => {
-      const table = document.getElementById('studentsTable');
-      const html = paginateByHeight({tableEl: table, label: 'Students and choices'});
-      exportToPDF('Students (Choices)', html);
-    };
+    printStudentsBtn.onclick = () => exportTablesAsPDF('Students (Choices)', [{id: 'studentsTable', label: 'Students and choices'}]);
     exportStudentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentsTable'), 'students.csv');
   }
-  printSummaryBtn.onclick = () => {
-    const table = document.getElementById('balanceTable');
-    const html = paginateByHeight({tableEl: table,label: 'Workshop capacities and assignments',extraTableClass: 'summary-table'});
-    exportToPDF('Summary', html);
-  };
+  printSummaryBtn.onclick = () => exportTablesAsPDF('Summary', [{id: 'balanceTable', label: 'Workshop capacities & assignments'}]);
   exportSummaryCsvBtn.onclick = () => downloadCSV(toCSVFromTable('balanceTable'), 'summary.csv');
 
-  printAssignmentsBtn.onclick = () => {
-    const table = document.getElementById('studentTable');
-    const html = paginateByHeight({tableEl: table, label: 'Assignments'});
-    exportToPDF('Student Assignments', html);
-  };
+  printAssignmentsBtn.onclick = () => exportTablesAsPDF('Student Assignments', [{id: 'studentTable', label: 'Assignments'}]);
   exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
 
-  // Rosters PDF/CSV
-  printRostersBtn.onclick = () => {
-    const html = buildRosterHTMLForPDF();
-    exportToPDF('Workshop Rosters', html);
-  };
-  exportRostersCsvBtn.onclick = () => {
-    const csv = buildRosterCSV();
-    downloadCSV(csv, 'rosters.csv');
-  };
+  printRostersBtn.onclick = () => exportToPDF('Workshop Rosters', buildRosterHTMLForPDF());
+  exportRostersCsvBtn.onclick = () => downloadCSV(buildRosterCSV(), 'rosters.csv');
 
-  printUnplacedBtn.onclick = () => {
-    const table = document.getElementById('unplacedTable');
-    const html = paginateByHeight({tableEl: table, label: 'Unplaced'});
-    exportToPDF('Unplaced Students', html);
-  };
+  printUnplacedBtn.onclick = () => exportTablesAsPDF('Unplaced Students', [{id: 'unplacedTable', label: 'Unplaced'}]);
   exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
 
   function buildRosterHTMLForPDF(){
@@ -1022,7 +967,6 @@ try{
       <div class="pdf-roster">${rosterDoc.innerHTML}</div>
     `;
   }
-
   function buildRosterCSV(){
     const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
     const rows = [['Workshop','Instructor','Room','Assigned count','Student','School']];
@@ -1040,6 +984,7 @@ try{
     return rows.map(r=>r.map(esc).join(',')).join('\r\n');
   }
 
+  /* ---------- PDF (html2pdf) ---------- */
   function exportToPDF(title, html) {
     const lib = window.html2pdf;
     if(!lib){ alert('PDF library did not load. Try again or check your network.'); return; }
@@ -1092,45 +1037,17 @@ try{
     }).finally(()=>host.remove());
   }
 
-  function paginateByHeight({tableEl, label, extraTableClass='', transformRow, overrideHeadHTML}) {
-    const measHost = document.createElement('div');
-    measHost.style.position='fixed'; measHost.style.left='-10000px'; measHost.style.top='0';
-    measHost.style.width='7.5in'; measHost.style.visibility='hidden';
-    document.body.appendChild(measHost);
-
-    const PAGE_H = 10 * 96;
-    const pages = [];
-    const headHTML = overrideHeadHTML ?? (tableEl.tHead ? tableEl.tHead.innerHTML : '');
-
-    function startMeasurePage() {
-      const wrap = document.createElement('div'); wrap.className='pdf-page';
-      const h2 = document.createElement('h2'); wrap.appendChild(h2);
-      const tbl = document.createElement('table'); tbl.className = `report ${extraTableClass}`;
-      tbl.innerHTML = `<thead>${headHTML}</thead><tbody></tbody>`; wrap.appendChild(tbl);
-      measHost.appendChild(wrap);
-      return {wrap, h2, tbody: tbl.tBodies[0]};
-    }
-
-    let {wrap, h2, tbody} = startMeasurePage();
-    let pageIndex = 0;
-    const rows = tableEl.tBodies[0] ? [...tableEl.tBodies[0].rows] : [];
-    const rowHTMLs = rows.map(r => r.outerHTML);
-    const rowToHTML = (html, rEl) => transformRow ? transformRow(rEl) : html;
-
-    for (let i=0;i<rows.length;i++){
-      const html = rowToHTML(rowHTMLs[i], rows[i], i);
-      const tmp = document.createElement('tbody'); tmp.innerHTML = html;
-      const tr = tmp.firstElementChild; tbody.appendChild(tr);
-      h2.innerHTML = label + (pageIndex>0 ? ' <small>(cont.)</small>' : '');
-      if (wrap.scrollHeight > PAGE_H) {
-        tbody.removeChild(tr); pages.push(wrap.outerHTML); measHost.removeChild(wrap);
-        ({wrap, h2, tbody} = startMeasurePage()); pageIndex++;
-        h2.innerHTML = label + ' <small>(cont.)</small>'; tbody.appendChild(tr);
-      }
-    }
-    pages.push(wrap.outerHTML); measHost.remove(); return pages.join('');
+  function exportTablesAsPDF(title, items){
+    let html = "";
+    items.forEach(({id, label})=>{
+      const t=document.getElementById(id);
+      if(!t) return;
+      html += `<h2>${label}</h2><table class="report">${t.tHead.outerHTML}${t.tBodies[0].outerHTML}</table>`;
+    });
+    exportToPDF(title, html);
   }
 
+  /* ---------- Tabs ---------- */
   function setTab(which) {
     [tabSummary, tabStudents, tabRosters, tabUnplaced].forEach(t => t.classList.remove('active'));
     [panelSummary, panelStudents, panelRosters, panelUnplaced].forEach(p => p.classList.add('hidden'));
