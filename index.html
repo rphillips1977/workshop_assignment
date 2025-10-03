@@ -384,6 +384,7 @@ try{
   });
 
   /* ---------- Normalization + fuzzy ---------- */
+  // normalize keeps apostrophes for display, converts smart quotes to straight '
   const normalize=(s)=>{
     let t = s == null ? '' : String(s);
     t = t.replace(/^\uFEFF/, '');               // BOM
@@ -392,8 +393,9 @@ try{
     t = t.replace(/\s+/g,' ').replace(/\s*[.,:;!?]+$/,'').trim();
     return t;
   };
+  // key used for matching: punctuation (incl. apostrophes) removed so "Whats" and "What's" match
   const key=(s)=> normalize(s).toLowerCase()
-    .replace(/[^a-z0-9 -]/g,'')
+    .replace(/[^a-z0-9 -]/g,'')  // strip punctuation incl. apostrophes
     .replace(/\bthe\b/g,'')
     .replace(/\s+/g,' ')
     .trim();
@@ -401,11 +403,18 @@ try{
   const tokens=(s)=> key(s).split(' ').filter(Boolean);
   const jaccard=(a,b)=>{const A=new Set(a),B=new Set(b);let inter=0;for(const x of A){if(B.has(x)) inter++;}return inter/(new Set([...A,...B]).size||1);};
 
+  // Build a fast exact-lookup map for workshops
+  let wsKeyToIndex = new Map();
+  function rebuildWorkshopKeyMap(){
+    wsKeyToIndex = new Map();
+    workshopList.forEach((w,i)=> wsKeyToIndex.set(key(w.name), i));
+  }
+
   function findWorkshopIndexByName(name){
     if(!name) return -1;
     const k = key(name);
-    const exactIdx = workshopList.findIndex(w => key(w.name) === k);
-    if(exactIdx !== -1) return exactIdx;
+    if(wsKeyToIndex.has(k)) return wsKeyToIndex.get(k);   // exact key match first
+    // fuzzy fallback
     const t = tokens(name);
     let best = {idx:-1, score:0};
     workshopList.forEach((w,i)=>{ const score=jaccard(t,tokens(w.name)); if(score>best.score) best={idx:i,score}; });
@@ -469,7 +478,7 @@ try{
   function newRow({instructor='',name='',capacity='12',room=''}={}){
     const row=document.createElement('div');
     row.className='five wkRow';
-    row.innerHTML=`<input type="text" class="wkInstructor" placeholder="Instructor name" value="${instructor}">
+    row.innerHTML=`<input type="text" class="wkInstructor" placeholder="Instructor name" value="${name ? '' : ''}${instructor}">
       <input type="text" class="wkName" placeholder="Workshop" value="${name}">
       <input type="number" class="wkCap" min="1" value="${capacity}">
       <input type="text" class="wkRoom" placeholder="e.g., BH 101 (optional)" value="${room}">
@@ -577,6 +586,7 @@ try{
         const rawC = cIdx!=null ? row[cIdx] : '';
         const rawR = rIdx!=null ? row[rIdx] : '';
 
+        // preserve apostrophes for display; normalize smart quotes to straight '
         const name = normalize(rawW);
         const instructor = normalize(rawI);
         const room = normalize(rawR || '');
@@ -634,6 +644,8 @@ try{
     if(hasError){wkErrors.textContent='Please fix highlighted fields.';wkErrors.classList.remove('hidden');return;}
 
     workshopList.sort((a,b)=>a.name.localeCompare(b.name) || a.instructor.localeCompare(b.instructor));
+    rebuildWorkshopKeyMap();
+
     document.querySelectorAll('.wkInstructor,.wkName,.wkCap,.wkRoom,.wkDel').forEach(el=>{ if('disabled' in el) el.disabled=true; });
     wkFieldset.classList.add('locked'); lockNote.classList.remove('hidden');
 
@@ -648,8 +660,7 @@ try{
     if(enable){ studentDrop.setAttribute('tabindex','0'); } else { studentDrop.removeAttribute('tabindex'); }
   }
 
-  /* ---------- Student import (FIXED header detector) ---------- */
-  // Normalize a header cell into space-separated tokens (letters/numbers only)
+  /* ---------- Student import ---------- */
   const normHeader = (h) => normalize(h).toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu,' ')
     .replace(/\s+/g,' ')
@@ -661,7 +672,6 @@ try{
     for(const f of forbid){ if(set.has(f)) return false; }
     return true;
   };
-
   function indexOfHeader(hdr, predicate){
     for(let i=0;i<hdr.length;i++){
       if (predicate(normHeader(hdr[i]??''))) return i;
@@ -676,20 +686,16 @@ try{
 
     let startIdx = hdrNorm.length ? 1 : 0;
 
-    // Detect columns robustly
     const lastIdx  = indexOfHeader(hdrRaw, h => hasTokens(normHeader(h), ['last','name']) || normHeader(h)==='last');
     const firstIdx = indexOfHeader(hdrRaw, h => (hasTokens(normHeader(h), ['first','name']) || normHeader(h)==='first') && !/first\s*choice/.test(normHeader(h)));
     const schoolIdx= indexOfHeader(hdrRaw, h => /school/.test(normHeader(h)));
-
     const c1Idx = indexOfHeader(hdrRaw, h => /first\s*choice/.test(normHeader(h)) || /choice\s*1\b/.test(normHeader(h)) || /preference\s*1\b/.test(normHeader(h)));
     const c2Idx = indexOfHeader(hdrRaw, h => /second\s*choice/.test(normHeader(h)) || /choice\s*2\b/.test(normHeader(h)) || /preference\s*2\b/.test(normHeader(h)));
     const c3Idx = indexOfHeader(hdrRaw, h => /third\s*choice/.test(normHeader(h)) || /choice\s*3\b/.test(normHeader(h)) || /preference\s*3\b/.test(normHeader(h)));
 
-    // If there is no recognizable header row, treat as headerless
     const headerExists = hdrNorm.some(h => /(last|first|school|choice|student)/.test(h));
     if (!headerExists) startIdx = 0;
 
-    // Safe fallbacks that DO NOT collide with School column
     const idx = {
       last:  lastIdx  !== -1 ? lastIdx  : 0,
       first: firstIdx !== -1 ? firstIdx : 1,
@@ -699,7 +705,6 @@ try{
       c3:    c3Idx   !== -1 ? c3Idx   : 5
     };
 
-    // Also support legacy single "Student" column ("Last, First")
     const studentCol = indexOfHeader(hdrRaw, h => /student/.test(normHeader(h)));
     const legacyMode = studentCol !== -1;
 
@@ -725,14 +730,21 @@ try{
     return list;
   }
 
+  // FIXED: precise issue detection (no false "Unknown" chips)
   function detectStudentIssues(s){
-    const mapped = s.preferences.map(p => findWorkshopIndexByName(p));
     const issues=[];
-    if(s.preferences.some(p=>!normalize(p))) issues.push('Missing one or more choices');
-    const unknown = s.preferences.some((p,ix)=> normalize(p) && mapped[ix]===-1);
-    if(unknown) issues.push('Unknown workshop name');
-    const real = mapped.filter(i=>i!==-1);
-    if(new Set(real).size < real.length) issues.push('Duplicate choices');
+    // missing
+    if (s.preferences.some(p => !normalize(p))) issues.push('Missing one or more choices');
+    // unknown + duplicate (after mapping)
+    const mapped = s.preferences.map(p => {
+      const v = normalize(p);
+      return v ? findWorkshopIndexByName(v) : -1;
+    });
+    if (s.preferences.some((p, idx) => normalize(p) && mapped[idx] === -1)) {
+      issues.push('Unknown workshop name');
+    }
+    const real = mapped.filter(i => i !== -1);
+    if (new Set(real).size < real.length) issues.push('Duplicate choices');
     return issues;
   }
 
