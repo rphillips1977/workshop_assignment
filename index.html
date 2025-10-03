@@ -383,27 +383,49 @@ try{
     document.getElementById('appRoot')?.setAttribute('aria-busy','false');
   });
 
-  /* ---------- Normalization + fuzzy ---------- */
+  /* ---------- Smart decode (fix curly ’ from Excel) ---------- */
+  async function readFileTextSmart(file){
+    const buf = await file.arrayBuffer();
+    const encs = ['utf-8','windows-1252','iso-8859-1'];
+    let best = {txt:'', bad:1e9};
+    for(const enc of encs){
+      try{
+        const dec = new TextDecoder(enc, {fatal:false});
+        const txt = dec.decode(buf);
+        const bad = (txt.match(/\uFFFD/g)||[]).length;
+        if(bad < best.bad) best = {txt, bad};
+      }catch(_){}
+    }
+    return best.txt;
+  }
+
+  /* ---------- Normalization & keys ---------- */
   const normalize=(s)=>{
     let t = s == null ? '' : String(s);
-    t = t.replace(/^\uFEFF/, '');               // BOM
-    t = t.trim().replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[‐–—]/g,'-');
-    t = t.replace(/\s*&\s*/gi,' and ');
-    t = t.replace(/\s+/g,' ').replace(/\s*[.,:;!?]+$/,'').trim();
+    t = t.replace(/^\uFEFF/, '');
+    t = t.trim()
+         .replace(/[‘’‛`´]/g,"'")     // all apostrophe-ish → '
+         .replace(/[“”«»„]/g,'"')
+         .replace(/[‐–—]/g,'-')
+         .replace(/\s*&\s*/gi,' and ')
+         .replace(/\s+/g,' ')
+         .replace(/\s*[.,:;!?]+$/,'')
+         .trim();
     return t;
   };
-  const key=(s)=> normalize(s).toLowerCase()
-    .replace(/[^a-z0-9' -]/g,'')  // keep apostrophes, dash, space
+  const baseKey=(s)=> normalize(s).toLowerCase()
+    .replace(/[^\p{L}\p{N}' -]+/gu,'')   // keep apostrophe
     .replace(/\bthe\b/g,'')
     .replace(/\s+/g,' ')
     .trim();
+  const keyKeepApos = (s)=> baseKey(s);
+  const keyNoApos   = (s)=> baseKey(s).replace(/'/g,''); // second index w/o '
 
-  const tokens=(s)=> key(s).split(' ').filter(Boolean);
+  const tokens=(s)=> keyNoApos(s).split(' ').filter(Boolean); // tokenization ignores apostrophes for fuzzy
   const jaccard=(a,b)=>{const A=new Set(a),B=new Set(b);let inter=0;for(const x of A){if(B.has(x)) inter++;}return inter/(new Set([...A,...B]).size||1);};
 
-  // fast Levenshtein ratio for strings up to ~200 chars
   function levRatio(a,b){
-    a=key(a); b=key(b);
+    a=keyNoApos(a); b=keyNoApos(b);
     const m=a.length,n=b.length; if(m===0&&n===0) return 1; if(m===0||n===0) return 0;
     let prev=new Array(n+1), curr=new Array(n+1);
     for(let j=0;j<=n;j++) prev[j]=j;
@@ -419,28 +441,33 @@ try{
     const dist=prev[n]; return 1 - dist/Math.max(m,n);
   }
 
-  // Build a fast exact-lookup map for workshops
-  let wsKeyToIndex = new Map();
-  function rebuildWorkshopKeyMap(){
-    wsKeyToIndex = new Map();
-    workshopList.forEach((w,i)=> wsKeyToIndex.set(key(w.name), i));
+  /* ---------- Lookup maps ---------- */
+  let wsMapKeep = new Map(); // keyKeepApos(name) -> index
+  let wsMapNo   = new Map(); // keyNoApos(name)   -> index
+  function rebuildWorkshopKeyMaps(){
+    wsMapKeep = new Map(); wsMapNo = new Map();
+    workshopList.forEach((w,i)=>{
+      wsMapKeep.set(keyKeepApos(w.name), i);
+      wsMapNo.set(keyNoApos(w.name), i);
+    });
   }
 
   function findWorkshopIndexByName(name){
     if(!name) return -1;
-    const k = key(name);
-    if(wsKeyToIndex.has(k)) return wsKeyToIndex.get(k);   // exact key match first
+    const kKeep = keyKeepApos(name);
+    const kNo   = keyNoApos(name);
+    if(wsMapKeep.has(kKeep)) return wsMapKeep.get(kKeep);
+    if(wsMapNo.has(kNo))     return wsMapNo.get(kNo);
 
-    // fuzzy fallback: token Jaccard, substring containment, Levenshtein ratio
+    // fuzzy
     const t = tokens(name);
     let best = {idx:-1, score:0};
-
     for(let i=0;i<workshopList.length;i++){
       const w=workshopList[i];
-      const wKey=key(w.name);
+      const wNo=keyNoApos(w.name);
       const scoreJ=jaccard(t,tokens(w.name));
-      const contain = (wKey.includes(k) || k.includes(wKey)) ? Math.min(wKey.length,k.length)/Math.max(wKey.length,k.length) : 0;
-      const scoreL=levRatio(k,wKey);
+      const contain = (wNo.includes(kNo) || kNo.includes(wNo)) ? Math.min(wNo.length,kNo.length)/Math.max(wNo.length,kNo.length) : 0;
+      const scoreL=levRatio(kNo,wNo);
       const score = Math.max(scoreJ, contain, scoreL);
       if(score>best.score) best={idx:i,score};
     }
@@ -554,7 +581,7 @@ try{
     setWorkshopControlsEnabled(true); lockWorkshops.textContent='Lock workshops and continue'; lockWorkshops.disabled=false;
     document.querySelectorAll('.wkInstructor,.wkName,.wkCap,.wkRoom,.wkDel').forEach(el=>{ if('disabled' in el) el.disabled=false; });
     deletedStack=[]; updateUndoState(); enableRunIfReady();
-    workshopList=[]; wsKeyToIndex.clear();
+    workshopList=[]; wsMapKeep.clear(); wsMapNo.clear();
   };
 
   /* ---------- CSV helpers ---------- */
@@ -564,8 +591,8 @@ try{
     return out;
   }
   function parseCSV(text){
-    const lines=text.split(/\r?\n/).map(s=>s.replace(/^\uFEFF/, '').trim()); // keep empty cells but drop empty lines
-    const rows=[]; for(const l of lines){ if(!l) continue; rows.push(splitCSV(l).map(c=>c.trim())); } return rows;
+    const lines=text.split(/\r?\n/).map(s=>s.replace(/^\uFEFF/, '').trim()).filter(Boolean);
+    const rows=[]; for(const l of lines) rows.push(splitCSV(l).map(c=>c.trim())); return rows;
   }
   const extractInt=(str)=>{ if(str==null) return null; const m=String(str).match(/-?\d+/); if(!m) return null; const n=parseInt(m[0],10); return Number.isFinite(n)?n:null; };
 
@@ -586,8 +613,11 @@ try{
       if(rIdx===-1) rIdx=null;
       return {wIdx,iIdx,cIdx,rIdx,startIdx:1};
     }
+    // no header → attempt simple heuristics
     const first = rows[0] || [];
     const cols = first.length;
+    if(cols===3){ return {wIdx:0,iIdx:1,cIdx:null,rIdx:2,startIdx:0}; }         // Workshop, Instructor, Room
+    if(cols===2){ return {wIdx:0,iIdx:1,cIdx:null,rIdx:null,startIdx:0}; }      // Workshop, Instructor
     const iIdx = cols > 0 ? 0 : null;
     const wIdx = cols > 1 ? 1 : null;
     const rIdx = cols > 2 ? 2 : null;
@@ -599,7 +629,7 @@ try{
     try{
       const fname=(file?.name||'').toLowerCase();
       if(!fname.endsWith('.csv')){alert('Please use a .csv file for workshops (not .xlsx).');return;}
-      const text=await file.text();
+      const text=await readFileTextSmart(file);
       const rows=parseCSV(text);
       if(rows.length===0){alert('No rows found');return;}
 
@@ -623,7 +653,7 @@ try{
         if (!name && !instructor) continue;
         if (!name) continue;
 
-        const k = key(name) + '|' + key(instructor);
+        const k = keyKeepApos(name) + '|' + keyKeepApos(instructor);
         if(!seen.has(k)) seen.set(k,{name,instructor,capacity,room});
       }
 
@@ -662,7 +692,7 @@ try{
       if(!name){names[i].classList.add('invalid');hasError=true;}
       if(!ins){instr[i].classList.add('invalid');hasError=true;}
       if(!Number.isFinite(cap)||cap<1){cap=12;}
-      const k=key(name)+'|'+key(ins);
+      const k=keyKeepApos(name)+'|'+keyKeepApos(ins);
       if(seen.has(k)){names[i].classList.add('invalid');hasError=true;}
       seen.add(k);
       workshopList.push({room,name,instructor:ins,capacity:cap});
@@ -670,7 +700,7 @@ try{
     if(hasError){wkErrors.textContent='Please fix highlighted fields.';wkErrors.classList.remove('hidden');return;}
 
     workshopList.sort((a,b)=>a.name.localeCompare(b.name) || a.instructor.localeCompare(b.instructor));
-    rebuildWorkshopKeyMap();
+    rebuildWorkshopKeyMaps();
 
     document.querySelectorAll('.wkInstructor,.wkName,.wkCap,.wkRoom,.wkDel').forEach(el=>{ if('disabled' in el) el.disabled=true; });
     wkFieldset.classList.add('locked'); lockNote.classList.remove('hidden');
@@ -756,7 +786,6 @@ try{
     return list;
   }
 
-  // precise issue detection
   function detectStudentIssues(s){
     const issues=[];
     if (s.preferences.some(p => !normalize(p))) issues.push('Missing one or more choices');
@@ -774,10 +803,9 @@ try{
 
   async function importStudentsFromFile(file){
     try{
-      if(!locked){ alert('Lock workshops first.'); return; } // why: ensures map exists, avoids false "unknown"
       const name=(file?.name||'').toLowerCase();
       if(!name.endsWith('.csv')){alert('Please use a .csv file (not .xlsx).');return;}
-      const text=await file.text();
+      const text=await readFileTextSmart(file);
       if(!text.trim()){alert('This CSV looks empty.');return;}
       const rows=parseCSV(text);
       if(!rows.length){alert('No rows found in CSV.');return;}
