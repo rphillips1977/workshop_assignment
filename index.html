@@ -31,7 +31,7 @@ button.ghost{background:#fff;border:1px solid var(--line-soft);padding:10px 14px
 button[disabled]{opacity:.55;cursor:not-allowed}
 .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.five{display:grid;grid-template-columns:1fr 1fr 130px 120px 36px;gap:10px;align-items:center}
+.five{display:grid;grid-template-columns:130px 1fr 120px 100px 36px;gap:10px;align-items:center}
 .hidden{display:none}
 .badge{font-size:12px;padding:2px 8px;border:1px solid var(--line-soft);border-radius:999px;color:#6b7280}
 .note{color:var(--muted);font-size:12px}
@@ -85,7 +85,7 @@ table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--li
       </div>
     </div>
     <div class="two" style="margin-top:10px">
-      <div><label class="small">Upload Workshops CSV (Instructor, Workshop, [Room], [Capacity])</label><input id="workshopCsvFile" type="file" accept=".csv"></div>
+      <div><label class="small">Upload Workshops CSV (Workshop, Instructor, [Room], [Capacity])</label><input id="workshopCsvFile" type="file" accept=".csv"></div>
       <div id="workshopDrop" class="dropzone" tabindex="0" role="button" aria-label="Drop workshops CSV here or click to browse">Drag and drop Workshops CSV here</div>
     </div>
     <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
@@ -312,13 +312,13 @@ try{
     if (workshopsLocked) return;
     const n = parseInt(numWorkshopsEl.value, 10);
     if (!n || n < 1 || n > 20) return alert('Select a valid number between 1 and 20');
-    workshops = Array.from({ length: n }, () => ({ instructor: '', name: '', capacity: 12, room: '' }));
+    workshops = Array.from({ length: n }, () => ({ name: '', instructor: '', room: '', capacity: 12 }));
     renderWorkshops();
   };
 
   $('addWorkshopRow').onclick = () => {
     if (workshopsLocked) return;
-    workshops.push({ instructor: '', name: '', capacity: 12, room: '' });
+    workshops.push({ name: '', instructor: '', room: '', capacity: 12 });
     renderWorkshops();
   };
 
@@ -352,8 +352,8 @@ try{
       row.innerHTML = `
         <input type="text" placeholder="Instructor" value="${escHTML(w.instructor)}" data-idx="${i}" data-field="instructor" ${workshopsLocked ? 'disabled' : ''}>
         <input type="text" placeholder="Workshop name" value="${escHTML(w.name)}" data-idx="${i}" data-field="name" ${workshopsLocked ? 'disabled' : ''}>
-        <input type="number" placeholder="Capacity" value="${w.capacity}" data-idx="${i}" data-field="capacity" min="1" ${workshopsLocked ? 'disabled' : ''}>
         <input type="text" placeholder="Room" value="${escHTML(w.room)}" data-idx="${i}" data-field="room" ${workshopsLocked ? 'disabled' : ''}>
+        <input type="number" placeholder="Capacity" value="${w.capacity}" data-idx="${i}" data-field="capacity" min="1" ${workshopsLocked ? 'disabled' : ''}>
         <button class="smallbtn" data-delete="${i}" title="Delete" ${workshopsLocked ? 'disabled' : ''}>✕</button>
       `;
       container.appendChild(row);
@@ -667,12 +667,10 @@ try{
     
     const studentBody = $('studentTable').querySelector('tbody');
     studentBody.innerHTML = '';
-    const sortedAssignments = [...assignments].sort((a, b) => {
-      const lastCmp = a.student.lastName.localeCompare(b.student.lastName);
-      if (lastCmp !== 0) return lastCmp;
+    assignments.sort((a, b) => {
+      if (a.student.lastName !== b.student.lastName) return a.student.lastName.localeCompare(b.student.lastName);
       return a.student.firstName.localeCompare(b.student.firstName);
-    });
-    sortedAssignments.forEach(a => {
+    }).forEach(a => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${escHTML(a.student.lastName)}</td>
@@ -689,14 +687,13 @@ try{
     workshops.forEach(w => {
       const ws = wsMap.get(normalizeForComparison(w.name));
       const assigned = ws ? ws.assigned : [];
-      const sec = document.createElement('div');
-      sec.className = 'roster-section';
+      const section = document.createElement('div');
+      section.className = 'roster-section';
       const sorted = [...assigned].sort((a, b) => {
-        const lastCmp = a.lastName.localeCompare(b.lastName);
-        if (lastCmp !== 0) return lastCmp;
+        if (a.lastName !== b.lastName) return a.lastName.localeCompare(b.lastName);
         return a.firstName.localeCompare(b.firstName);
       });
-      sec.innerHTML = `
+      section.innerHTML = `
         <div class="roster-header">
           <div class="ws-name">${escHTML(w.name)}</div>
           <div class="instructor">${escHTML(w.instructor)}</div>
@@ -707,7 +704,7 @@ try{
           ${sorted.map(s => `<div class="name">${escHTML(s.lastName)}, ${escHTML(s.firstName)}</div>`).join('')}
         </div>
       `;
-      rosterDoc.appendChild(sec);
+      rosterDoc.appendChild(section);
     });
     
     const unplacedBody = $('unplacedTable').querySelector('tbody');
@@ -725,16 +722,90 @@ try{
     });
   }
 
-  // ============ TABS ============
-  const tabs = ['Summary', 'Students', 'Rosters', 'Unplaced'];
-  tabs.forEach(t => {
-    $('tab' + t).onclick = () => {
-      tabs.forEach(tt => {
-        $('tab' + tt).classList.toggle('active', tt === t);
-        $('panel' + tt).classList.toggle('hidden', tt !== t);
-      });
+  // ============ TAB SWITCHING ============
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel > div').forEach(p => p.classList.add('hidden'));
+    $('tab' + tabId).classList.add('active');
+    $('panel' + tabId).classList.remove('hidden');
+  }
+
+  $('tabSummary').onclick = () => switchTab('Summary');
+  $('tabStudents').onclick = () => switchTab('Students');
+  $('tabRosters').onclick = () => switchTab('Rosters');
+  $('tabUnplaced').onclick = () => switchTab('Unplaced');
+
+  // ============ EXPORT FUNCTIONS ============
+  function exportTableToCSV(tableId, filename) {
+    const table = $(tableId);
+    const rows = Array.from(table.querySelectorAll('tr'));
+    const csv = rows.map(row => {
+      const cells = Array.from(row.querySelectorAll('th, td'));
+      return cells.map(cell => {
+        let text = cell.textContent.trim();
+        if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+          text = '"' + text.replace(/"/g, '""') + '"';
+        }
+        return text;
+      }).join(',');
+    }).join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportToPDF(elementId, filename) {
+    const element = $(elementId);
+    const opt = {
+      margin: 0.5,
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
-  });
+    html2pdf().set(opt).from(element).save();
+  }
+
+  $('printStudents').onclick = () => exportToPDF('studentsPreview', 'students.pdf');
+  $('exportStudentsCsv').onclick = () => exportTableToCSV('studentsTable', 'students.csv');
+  $('printSummary').onclick = () => exportToPDF('panelSummary', 'summary.pdf');
+  $('exportSummaryCsv').onclick = () => exportTableToCSV('balanceTable', 'summary.csv');
+  $('printAssignments').onclick = () => exportToPDF('panelStudents', 'assignments.pdf');
+  $('exportAssignmentsCsv').onclick = () => exportTableToCSV('studentTable', 'assignments.csv');
+  $('printRosters').onclick = () => exportToPDF('panelRosters', 'rosters.pdf');
+  $('exportRostersCsv').onclick = () => {
+    const rows = [['Instructor', 'Workshop', 'Room', 'Student Last', 'Student First']];
+    workshops.forEach(w => {
+      const ws = workshops.find(x => x.name === w.name);
+      const wsData = Array.from(document.querySelectorAll('.roster-section')).find(el => 
+        el.querySelector('.ws-name').textContent === w.name
+      );
+      if (wsData) {
+        const names = Array.from(wsData.querySelectorAll('.name')).map(n => n.textContent.split(', '));
+        names.forEach(([last, first]) => {
+          rows.push([w.instructor, w.name, w.room, last, first || '']);
+        });
+      }
+    });
+    const csv = rows.map(r => r.map(c => {
+      if (c.includes(',') || c.includes('"')) return '"' + c.replace(/"/g, '""') + '"';
+      return c;
+    }).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rosters.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  $('printUnplaced').onclick = () => exportToPDF('panelUnplaced', 'unplaced.pdf');
+  $('exportUnplacedCsv').onclick = () => exportTableToCSV('unplacedTable', 'unplaced.csv');
 
   // ============ RESET ============
   $('resetAll').onclick = () => {
@@ -747,12 +818,9 @@ try{
     $('lockNote').classList.add('hidden');
     $('lockWorkshops').disabled = false;
     $('csvFile').disabled = true;
-    $('csvFile').value = '';
-    $('workshopCsvFile').value = '';
     $('studentDrop').classList.add('disabled');
     $('wkFieldset').disabled = false;
     $('numWorkshops').disabled = false;
-    $('numWorkshops').value = '0';
     $('buildWorkshopRows').disabled = false;
     $('addWorkshopRow').disabled = false;
     $('clearWorkshops').disabled = false;
@@ -764,89 +832,6 @@ try{
     renderWorkshops();
   };
 
-  // ============ EXPORT FUNCTIONS ============
-  function exportToPDF(elementId, filename) {
-    const element = $(elementId);
-    if (!element || typeof html2pdf === 'undefined') return alert('PDF export not available');
-    const opt = {
-      margin: 10,
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-    html2pdf().set(opt).from(element).save();
-  }
-
-  function exportToCSV(rows, filename) {
-    const csv = rows.map(r => r.map(cell => {
-      const s = String(cell || '');
-      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
-    }).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-  }
-
-  $('printStudents').onclick = () => exportToPDF('studentsTable', 'students.pdf');
-  $('printSummary').onclick = () => exportToPDF('balanceTable', 'summary.pdf');
-  $('printAssignments').onclick = () => exportToPDF('studentTable', 'assignments.pdf');
-  $('printRosters').onclick = () => exportToPDF('rosterDoc', 'rosters.pdf');
-  $('printUnplaced').onclick = () => exportToPDF('unplacedTable', 'unplaced.pdf');
-
-  $('exportStudentsCsv').onclick = () => {
-    const rows = [['Last Name', 'First Name', 'School', 'First Choice', 'Second Choice', 'Third Choice']];
-    students.forEach(s => rows.push([s.lastName, s.firstName, s.school, s.choice1, s.choice2, s.choice3]));
-    exportToCSV(rows, 'students.csv');
-  };
-
-  $('exportSummaryCsv').onclick = () => {
-    const rows = [['Instructor', 'Workshop', 'Capacity', 'Assigned', 'Room']];
-    workshops.forEach(w => {
-      const ws = Array.from(assignments).filter(a => normalizeForComparison(a.workshop.name) === normalizeForComparison(w.name));
-      rows.push([w.instructor, w.name, w.capacity, ws.length, w.room]);
-    });
-    exportToCSV(rows, 'summary.csv');
-  };
-
-  $('exportAssignmentsCsv').onclick = () => {
-    const rows = [['Last Name', 'First Name', 'School', 'Assigned Workshop', 'Room']];
-    const sorted = [...assignments].sort((a, b) => {
-      const lastCmp = a.student.lastName.localeCompare(b.student.lastName);
-      if (lastCmp !== 0) return lastCmp;
-      return a.student.firstName.localeCompare(b.student.firstName);
-    });
-    sorted.forEach(a => rows.push([a.student.lastName, a.student.firstName, a.student.school, a.workshop.name, a.workshop.room]));
-    exportToCSV(rows, 'assignments.csv');
-  };
-
-  $('exportRostersCsv').onclick = () => {
-    const rows = [['Workshop', 'Instructor', 'Room', 'Capacity', 'Last Name', 'First Name']];
-    workshops.forEach(w => {
-      const ws = assignments.filter(a => normalizeForComparison(a.workshop.name) === normalizeForComparison(w.name));
-      const sorted = ws.map(a => a.student).sort((a, b) => {
-        const lastCmp = a.lastName.localeCompare(b.lastName);
-        if (lastCmp !== 0) return lastCmp;
-        return a.firstName.localeCompare(b.firstName);
-      });
-      sorted.forEach(s => rows.push([w.name, w.instructor, w.room, w.capacity, s.lastName, s.firstName]));
-    });
-    exportToCSV(rows, 'rosters.csv');
-  };
-
-  $('exportUnplacedCsv').onclick = () => {
-    const rows = [['Last Name', 'First Name', 'School', 'Preferences', 'Reason']];
-    const unplacedData = $('unplacedTable').querySelectorAll('tbody tr');
-    unplacedData.forEach(tr => {
-      const cells = Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim());
-      rows.push(cells);
-    });
-    exportToCSV(rows, 'unplaced.csv');
-  };
-
-  renderWorkshops();
 } catch (err) {
   showInitError(err.message);
   console.error(err);
