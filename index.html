@@ -80,7 +80,7 @@ table.report{
 /* Step 2 issue highlighting */
 .row-issue td{ background:#FFF7ED; }
 
-/* New: issues cell chips */
+/* issue chips */
 .issues{ display:flex; flex-wrap:wrap; gap:6px; }
 .issue-pill{
   font-size:11px; padding:2px 8px; border-radius:999px;
@@ -109,7 +109,7 @@ table.report{
 .roster-header .room{ color:#374151 }
 .roster-header .count{ font-weight:800; white-space:nowrap }
 
-/* 3 columns desktop → 2 tablet → 1 phone */
+/* columns for names */
 .name-grid{
   padding:8px 10px 12px 10px;
   display:grid;
@@ -311,7 +311,7 @@ function showInitError(msg){
 }
 
 try{
-  // Guard default page drag events (only our dropzones should handle drops)
+  // Prevent page-level drops outside our dropzones
   ['dragenter','dragover','drop'].forEach(evt=>{
     document.addEventListener(evt, e=>{
       if (e.target && e.target.closest && e.target.closest('.dropzone')) return;
@@ -384,22 +384,17 @@ try{
   /* ---------- Normalization + fuzzy matching ---------- */
   const normalize=(s)=>{
     let t = s == null ? '' : String(s).trim();
-    // unify quotes/dashes & punctuation noise
     t = t.replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[‐-–—]/g,'-');
-    // unify ampersand/and
     t = t.replace(/\s*&\s*/gi,' and ');
-    // squeeze spaces and strip trailing punctuation
     t = t.replace(/\s+/g,' ').replace(/\s*[.,:;!?]+$/,'').trim();
     return t;
   };
-  // Canonical key for exact matching
   const key=(s)=> normalize(s).toLowerCase()
-    .replace(/[^a-z0-9 -]/g,'')   // keep letters, numbers, spaces, hyphen
-    .replace(/\bthe\b/g,'')       // drop lead articles
+    .replace(/[^a-z0-9 -]/g,'')
+    .replace(/\bthe\b/g,'')
     .replace(/\s+/g,' ')
     .trim();
 
-  // Tokenizer for fuzzy match
   const tokens=(s)=> key(s).split(' ').filter(Boolean);
   const jaccard=(a,b)=>{
     const A=new Set(a), B=new Set(b);
@@ -408,21 +403,17 @@ try{
     return inter/uni;
   };
 
-  // find best workshop index for a given free-form name
   function findWorkshopIndexByName(name){
     if(!name) return -1;
     const k = key(name);
-    // 1) exact
     const exactIdx = workshopList.findIndex(w => key(w.name) === k);
     if(exactIdx !== -1) return exactIdx;
-    // 2) fuzzy (Jaccard token similarity on names)
     const t = tokens(name);
     let best = {idx:-1, score:0};
     workshopList.forEach((w,i)=>{
       const score = jaccard(t, tokens(w.name));
       if(score > best.score) best = {idx:i, score};
     });
-    // threshold tuned for your “Design” vs “Designing”, punctuation, etc.
     return best.score >= 0.6 ? best.idx : -1;
   }
 
@@ -444,15 +435,11 @@ try{
     zone.addEventListener('click', openPicker);
     zone.addEventListener('keydown', (e)=>{ if((e.key==='Enter'||e.key===' ') && !isDisabled()){ e.preventDefault(); openPicker(); } });
 
-    const hasFilesType = (dt)=> {
-      try{ const types = dt && dt.types ? Array.from(dt.types) : []; return !types.length || types.includes('Files'); }
-      catch{ return true; }
-    };
     const pickFile = (dt)=> dt?.files?.[0] || null;
     const isAccepted = (file)=> acceptExts.some(ext => (file?.name||'').toLowerCase().endsWith(ext));
 
-    zone.addEventListener('dragenter', (e)=>{ if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return; e.preventDefault(); dragDepth++; highlight(); }, {passive:false});
-    zone.addEventListener('dragover',  (e)=>{ if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return; e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='copy'; }, {passive:false});
+    zone.addEventListener('dragenter', (e)=>{ if(isDisabled()) return; e.preventDefault(); dragDepth++; highlight(); }, {passive:false});
+    zone.addEventListener('dragover',  (e)=>{ if(isDisabled()) return; e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='copy'; }, {passive:false});
     zone.addEventListener('dragleave', (e)=>{ if(isDisabled()) return; e.preventDefault(); dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0) unhighlight(); }, {passive:false});
     zone.addEventListener('drop',      (e)=>{ if(isDisabled()) return; e.preventDefault(); dragDepth=0; unhighlight(); const f=pickFile(e.dataTransfer); if(!f){ alert('Drop a .csv file.'); return; } if(!isAccepted(f)){ alert('Please drop a .csv file.'); return; } if(input){ const dt=new DataTransfer(); dt.items.add(f); input.files=dt.files; } onFile(f); }, {passive:false});
   }
@@ -665,54 +652,87 @@ try{
     if(enable){ studentDrop.setAttribute('tabindex','0'); } else { studentDrop.removeAttribute('tabindex'); }
   }
 
-  /* ---------- Students CSV ---------- */
+  /* ---------- Students CSV (FIXED) ---------- */
   function buildStudents(rows){
-    const list=[];
-    const hdr=(rows[0]||[]).map(c=>String(c||'').toLowerCase());
-    let startIdx=0;
-    let mode='lastfirst';
-    let idx={last:0, first:1, school:null, c1:2, c2:3, c3:4};
-    const has = (t)=> hdr.includes(t);
-    const findIdx=(rxs)=> hdr.findIndex(h=>rxs.some(rx=>rx.test(h)));
+    const list = [];
+    if (!rows.length) return list;
 
-    if(hdr.length && (has('student') || /student/.test(hdr[0]||''))){
-      mode='legacy'; startIdx=1; idx={ student:0, c1:1, c2:2, c3:3, school:null };
-      const sIdx = findIdx([/^school$/, /high\s*school/, /school\s*name/, /^campus$/, /^hs$/]);
-      if (sIdx !== -1) { idx.school = sIdx; mode='legacy-plus'; }
-    }else if(hdr.length){
-      const lastIdx = findIdx([/^last$|last\s*name|surname/]);
-      const firstIdx = findIdx([/^first$|first\s*name|given/]);
-      const schoolIdx= findIdx([/^school$|high\s*school|school\s*name|^campus$|^hs$/]);
-      const c1Idx = findIdx([/^choice\s*1$|^choice1$|^first\s*choice$|^1st\s*choice$|^preference\s*1$/]);
-      const c2Idx = findIdx([/^choice\s*2$|^choice2$|^second\s*choice$|^2nd\s*choice$|^preference\s*2$/]);
-      const c3Idx = findIdx([/^choice\s*3$|^choice3$|^third\s*choice$|^3rd\s*choice$|^preference\s*3$/]);
-      idx.last = lastIdx !== -1 ? lastIdx : 0;
-      idx.first = firstIdx !== -1 ? firstIdx : 1;
-      idx.school = schoolIdx !== -1 ? schoolIdx : null;
-      idx.c1 = c1Idx !== -1 ? c1Idx : 2;
-      idx.c2 = c2Idx !== -1 ? c2Idx : 3;
-      idx.c3 = c3Idx !== -1 ? c3Idx : 4;
-      if (hdr.some(h => /(last|first|choice|school|preference)/.test(h))) startIdx=1;
+    const clean = (s) => String(s ?? '')
+      .replace(/^\uFEFF/, '')
+      .replace(/[–—‐]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+
+    const hdr = (rows[0] || []).map(clean);
+    const findIdx = (pred) => hdr.findIndex(h => pred(h));
+
+    // LEGACY: Student, Choice1..3 [, School]
+    if (hdr.some(h => /\bstudent\b/.test(h))) {
+      const studentIdx = findIdx(h => /\bstudent\b/.test(h));
+      const schoolIdx  = findIdx(h => /\bschool\b/.test(h) || /high\s*school/.test(h) || /\bschool\s*name\b/.test(h) || /\bcampus\b/.test(h) || /^hs$/.test(h));
+      const c1Idx = findIdx(h => /\b(choice\s*1|first\s*choice|1st\s*choice|preference\s*1)\b/.test(h));
+      const c2Idx = findIdx(h => /\b(choice\s*2|second\s*choice|2nd\s*choice|preference\s*2)\b/.test(h));
+      const c3Idx = findIdx(h => /\b(choice\s*3|third\s*choice|3rd\s*choice|preference\s*3)\b/.test(h));
+      const startIdx = 1;
+
+      for (let i = startIdx; i < rows.length; i++){
+        const r = rows[i] || [];
+        const labelRaw = normalize(r[studentIdx] || '');
+        if (!labelRaw) continue;
+
+        let last = '', first = '';
+        const m = labelRaw.match(/^\s*([^,]+)\s*,\s*(.+)\s*$/);
+        if (m) { last = normalize(m[1]); first = normalize(m[2]); }
+        else { last = labelRaw; }
+
+        const school = schoolIdx !== -1 ? normalize(rows[i][schoolIdx] || '') : '';
+        const picks = [
+          normalize(c1Idx !== -1 ? r[c1Idx] : ''),
+          normalize(c2Idx !== -1 ? r[c2Idx] : ''),
+          normalize(c3Idx !== -1 ? r[c3Idx] : '')
+        ];
+        const label = last ? (first ? `${last}, ${first}` : last) : first;
+        list.push({ id: `${label}##${i}`, last, first, school, label, preferences: picks });
+      }
+      return list;
     }
 
-    for(let i=startIdx;i<rows.length;i++){
-      const r=rows[i]||[];
-      let last='', first='', school='', picks=[];
-      if(mode==='legacy' || mode==='legacy-plus'){
-        const label = normalize(r[idx.student]||''); if(!label) continue;
-        const m = label.match(/^\s*([^,]+)\s*,\s*(.+)\s*$/);
-        if(m){ last=normalize(m[1]); first=normalize(m[2]); } else { last=label; first=''; }
-        school = idx.school!=null ? normalize(r[idx.school]||'') : '';
-        picks=[normalize(r[idx.c1]||''), normalize(r[idx.c2]||''), normalize(r[idx.c3]||'')];
-      }else{
-        last=normalize(r[idx.last]||r[0]||''); first=normalize(r[idx.first]||r[1]||'');
-        school = idx.school!=null ? normalize(r[idx.school]||'') : '';
-        picks=[normalize(r[idx.c1]||r[2]||''), normalize(r[idx.c2]||r[3]||''), normalize(r[idx.c3]||r[4]||'')];
-        if(!last && !first) continue;
-      }
+    // MODERN: Last, First, School, Choice1..3
+    const lastIdx   = findIdx(h => /\b(last|last\s*name|surname)\b/.test(h));
+    const firstIdx  = findIdx(h => /\b(first|first\s*name|given)\b/.test(h));
+    let schoolIdx = findIdx(h => /\bschool\b/.test(h) || /high\s*school/.test(h) || /\bschool\s*name\b/.test(h) || /\bcampus\b/.test(h) || /^hs$/.test(h));
+    let c1Idx = findIdx(h => /\b(choice\s*1|first\s*choice|1st\s*choice|preference\s*1)\b/.test(h));
+    let c2Idx = findIdx(h => /\b(choice\s*2|second\s*choice|2nd\s*choice|preference\s*2)\b/.test(h));
+    let c3Idx = findIdx(h => /\b(choice\s*3|third\s*choice|3rd\s*choice|preference\s*3)\b/.test(h));
+
+    // If any choice header is missing, map choices to the columns *after* the known name/school columns
+    const known = [lastIdx, firstIdx, schoolIdx].filter(i => i >= 0);
+    const basePos = known.length ? Math.max(...known) : -1;
+    const nextPos = (offset) => basePos + offset;
+
+    if (c1Idx === -1 && hdr.length > nextPos(1)) c1Idx = nextPos(1);
+    if (c2Idx === -1 && hdr.length > nextPos(2)) c2Idx = nextPos(2);
+    if (c3Idx === -1 && hdr.length > nextPos(3)) c3Idx = nextPos(3);
+
+    let startIdx = 0;
+    if (hdr.some(h => /(last|first|choice|school|preference)/.test(h))) startIdx = 1;
+
+    for (let i = startIdx; i < rows.length; i++){
+      const r = rows[i] || [];
+      const last   = normalize((lastIdx  !== -1 ? r[lastIdx]  : r[0]) || '');
+      const first  = normalize((firstIdx !== -1 ? r[firstIdx] : r[1]) || '');
+      const school = normalize((schoolIdx!== -1 ? r[schoolIdx] : '') || '');
+
+      const picks = [
+        normalize((c1Idx !== -1 ? r[c1Idx] : r[2]) || ''),
+        normalize((c2Idx !== -1 ? r[c2Idx] : r[3]) || ''),
+        normalize((c3Idx !== -1 ? r[c3Idx] : r[4]) || '')
+      ];
+
+      if (!last && !first) continue;
       const label = last ? (first ? `${last}, ${first}` : last) : first;
-      const id = label + '##' + i;
-      list.push({ id, last, first, school, label, preferences:[picks[0]||'',picks[1]||'',picks[2]||''] });
+      list.push({ id: `${label}##${i}`, last, first, school, label, preferences: picks });
     }
     return list;
   }
@@ -720,14 +740,11 @@ try{
   function detectStudentIssues(s){
     const cIdx = s.preferences.map(p => findWorkshopIndexByName(p));
     const issues=[];
-    // missing
     if(s.preferences.some(p=>!normalize(p))) issues.push('Missing one or more choices');
-    // unknowns
-    const unknowns = cIdx.filter(i => (i === -1) && normalize(s.preferences[cIdx.indexOf(i)]));
-    if(unknowns.length) issues.push('Unknown workshop name');
-    // duplicates (same mapped index)
     const mapped = cIdx.filter(i=>i!==-1);
     if(new Set(mapped).size < mapped.length) issues.push('Duplicate choices');
+    const anyUnknown = s.preferences.some((p,ix)=>normalize(p) && cIdx[ix]===-1);
+    if(anyUnknown) issues.push('Unknown workshop name');
     return issues;
   }
 
@@ -836,7 +853,6 @@ try{
       }
     }
 
-    // reasons for those left
     for(const s of unassigned.values()){
       const picks = s.preferences.map(p=>normalize(p));
       const mapped = picks.map(p => p ? findWorkshopIndexByName(p) : -1);
@@ -942,49 +958,6 @@ try{
     const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
   }
 
-  if (printStudentsBtn) {
-    printStudentsBtn.onclick = () => exportTablesAsPDF('Students (Choices)', [{id: 'studentsTable', label: 'Students and choices'}]);
-    exportStudentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentsTable'), 'students.csv');
-  }
-  printSummaryBtn.onclick = () => exportTablesAsPDF('Summary', [{id: 'balanceTable', label: 'Workshop capacities & assignments'}]);
-  exportSummaryCsvBtn.onclick = () => downloadCSV(toCSVFromTable('balanceTable'), 'summary.csv');
-
-  printAssignmentsBtn.onclick = () => exportTablesAsPDF('Student Assignments', [{id: 'studentTable', label: 'Assignments'}]);
-  exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
-
-  printRostersBtn.onclick = () => exportToPDF('Workshop Rosters', buildRosterHTMLForPDF());
-  exportRostersCsvBtn.onclick = () => downloadCSV(buildRosterCSV(), 'rosters.csv');
-
-  printUnplacedBtn.onclick = () => exportTablesAsPDF('Unplaced Students', [{id: 'unplacedTable', label: 'Unplaced'}]);
-  exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
-
-  function buildRosterHTMLForPDF(){
-    return `
-      <style>
-        .pdf-roster .roster-section{ margin-bottom:10pt; }
-        .pdf-roster .name-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); gap:6pt 24pt; }
-      </style>
-      <div class="pdf-roster">${rosterDoc.innerHTML}</div>
-    `;
-  }
-  function buildRosterCSV(){
-    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
-    const rows = [['Workshop','Instructor','Room','Assigned count','Student','School']];
-    const rosterMap = new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
-    for(const r of assignedRows){ rosterMap.get(r.workshop).push({last:r.last, first:r.first, school:r.school||''}); }
-    const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
-    roSorted.forEach(w=>{
-      const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
-      if(list.length===0){
-        rows.push([w.name, w.instructor, w.room||'', '0', '', '']);
-      }else{
-        list.forEach((s)=> rows.push([w.name, w.instructor, w.room||'', String(list.length), `${s.last}, ${s.first}`, s.school||'']));
-      }
-    });
-    return rows.map(r=>r.map(esc).join(',')).join('\r\n');
-  }
-
-  /* ---------- PDF (html2pdf) ---------- */
   function exportToPDF(title, html) {
     const lib = window.html2pdf;
     if(!lib){ alert('PDF library did not load. Try again or check your network.'); return; }
@@ -1047,6 +1020,39 @@ try{
     exportToPDF(title, html);
   }
 
+  if (printStudentsBtn) {
+    printStudentsBtn.onclick = () => exportTablesAsPDF('Students (Choices)', [{id: 'studentsTable', label: 'Students and choices'}]);
+    exportStudentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentsTable'), 'students.csv');
+  }
+  printSummaryBtn.onclick = () => exportTablesAsPDF('Summary', [{id: 'balanceTable', label: 'Workshop capacities & assignments'}]);
+  exportSummaryCsvBtn.onclick = () => downloadCSV(toCSVFromTable('balanceTable'), 'summary.csv');
+
+  printAssignmentsBtn.onclick = () => exportTablesAsPDF('Student Assignments', [{id: 'studentTable', label: 'Assignments'}]);
+  exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
+
+  printRostersBtn.onclick = () => exportToPDF('Workshop Rosters', `<div class="pdf-roster">${rosterDoc.innerHTML}</div>`);
+  exportRostersCsvBtn.onclick = () => downloadCSV(buildRosterCSV(), 'rosters.csv');
+
+  printUnplacedBtn.onclick = () => exportTablesAsPDF('Unplaced Students', [{id: 'unplacedTable', label: 'Unplaced'}]);
+  exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
+
+  function buildRosterCSV(){
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const rows = [['Workshop','Instructor','Room','Assigned count','Student','School']];
+    const rosterMap = new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
+    for(const r of assignedRows){ rosterMap.get(r.workshop).push({last:r.last, first:r.first, school:r.school||''}); }
+    const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
+    roSorted.forEach(w=>{
+      const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+      if(list.length===0){
+        rows.push([w.name, w.instructor, w.room||'', '0', '', '']);
+      }else{
+        list.forEach((s)=> rows.push([w.name, w.instructor, w.room||'', String(list.length), `${s.last}, ${s.first}`, s.school||'']));
+      }
+    });
+    return rows.map(r=>r.map(esc).join(',')).join('\r\n');
+  }
+
   /* ---------- Tabs ---------- */
   function setTab(which) {
     [tabSummary, tabStudents, tabRosters, tabUnplaced].forEach(t => t.classList.remove('active'));
@@ -1069,4 +1075,3 @@ try{
 
 </body>
 </html>
-
