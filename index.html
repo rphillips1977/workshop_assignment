@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +12,8 @@
   --brand-font: Inter, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
   --radius:14px; --radius-sm:10px; --shadow:0 1px 2px rgba(0,0,0,.04);
 }
-*{box-sizing:border-box} html,body{height:100%}
+*{box-sizing:border-box}
+html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--brand-font);line-height:1.4}
 .header{background:linear-gradient(90deg,var(--lsu-purple),#2d1252);color:#fff;padding:24px 16px}
 .wrap{max-width:1120px;margin:0 auto;padding:16px}
@@ -31,61 +33,138 @@ button.ghost{background:#fff;border:1px solid var(--line-soft);padding:10px 14px
 button[disabled]{opacity:.55;cursor:not-allowed}
 .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.five{display:grid;grid-template-columns:130px 1fr 120px 100px 36px;gap:10px;align-items:center}
+.five{display:grid;grid-template-columns:1fr 1fr 130px 120px 36px;gap:10px;align-items:center}
 .hidden{display:none}
 .badge{font-size:12px;padding:2px 8px;border:1px solid var(--line-soft);border-radius:999px;color:#6b7280}
 .note{color:var(--muted);font-size:12px}
 .tabs{display:flex;gap:8px;margin:8px 0 0}
 .tab{padding:8px 12px;border:1px solid var(--line-soft);border-bottom:0;border-radius:10px 10px 0 0;background:#f8fafc;cursor:pointer}
-.tab.active{background:#fff;border-color:var(--lsu-purple)}
+.tab.active{background:#fff;border-color:var(--lsu-purple);color:var(--lsu-purple)}
 .panel{border:1px solid var(--line-soft);border-radius:0 12px 12px 12px;background:#fff;padding:12px}
-.dropzone{display:flex;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:12px;min-height:44px;color:#6b7280;background:#fff;user-select:none}
+
+/* drop zones */
+.dropzone{display:flex;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:12px;min-height:44px;color:#6b7280;background:#fff; user-select:none}
 .dropzone.drag{border-color:var(--lsu-purple);background:#faf5ff}
 .dropzone.disabled{opacity:.6;pointer-events:none}
-.scrollbox{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+
+/* generic scrollbox */
+.scrollbox{
+  max-height:420px;
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+}
+
+/* tables */
 table{width:100%}
-table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.02)}
-.report thead th{background:#f8fafc;font-weight:600;position:sticky;top:0;z-index:1}
-.report th,.report td{padding:10px 12px;text-align:left;vertical-align:top;border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
-.report th:last-child,.report td:last-child{border-right:0}.report tr:last-child td{border-bottom:0}
-#balanceTable th:nth-child(3),#balanceTable td:nth-child(3),#balanceTable th:nth-child(4),#balanceTable td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
+table.report{
+  border-collapse:separate;border-spacing:0;border:1px solid var(--line);
+  border-radius:12px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.02);
+}
+.report thead th{
+  background:#f8fafc;font-weight:600;
+  position:sticky; top:0; z-index:1;
+}
+.report th,.report td{
+  padding:10px 12px;text-align:left;vertical-align:top;
+  border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);
+}
+.report th:last-child,.report td:last-child{border-right:0}
+.report tr:last-child td{border-bottom:0}
+
+/* Summary align */
+#balanceTable th:nth-child(3),#balanceTable td:nth-child(3),
+#balanceTable th:nth-child(4),#balanceTable td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}
 #balanceTable th:nth-child(5),#balanceTable td:nth-child(5){white-space:nowrap}
-.row-issue td{background:#FFF7ED}
-.issues{display:flex;flex-wrap:wrap;gap:6px}
-.issue-pill{font-size:11px;padding:2px 8px;border-radius:999px;background:#FEF3C7;border:1px solid #FDE68A;color:#92400E}
-.issue-legend{color:#6b7280;font-size:12px;margin-top:6px}
-#rosterDoc{display:flex;flex-direction:column;gap:12px}
-.roster-section{border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.02);overflow:hidden}
-.roster-header{background:#f3f4f6;font-weight:800;text-align:center;font-size:16px;padding:10px 12px}
-.roster-header .ws-name{font-weight:900}.roster-header .instructor{font-weight:800}.roster-header .room{color:#374151}.roster-header .count{font-weight:800;white-space:nowrap}
-.name-grid{padding:8px 10px 12px 10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 24px}
-@media (max-width:900px){.name-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:560px){.name-grid{grid-template-columns:1fr}}
-.name{padding:2px 0;border-bottom:1px solid var(--line-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.name:last-child{border-bottom:0}
+
+/* Step 2 issue highlighting */
+.row-issue td{ background:#FFF7ED; }
+
+/* New: issues cell chips */
+.issues{ display:flex; flex-wrap:wrap; gap:6px; }
+.issue-pill{
+  font-size:11px; padding:2px 8px; border-radius:999px;
+  background:#FEF3C7; border:1px solid #FDE68A; color:#92400E;
+}
+.issue-legend{ color:#6b7280; font-size:12px; margin-top:6px }
+
+/* Document-style rosters */
+#rosterDoc{ display:flex; flex-direction:column; gap:12px; }
+.roster-section{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 1px 0 rgba(0,0,0,.02);
+  overflow:hidden;
+}
+.roster-header{
+  background:#f3f4f6;
+  font-weight:800;
+  text-align:center;
+  font-size:16px;
+  padding:10px 12px;
+}
+.roster-header .ws-name{ font-weight:900 }
+.roster-header .instructor{ font-weight:800 }
+.roster-header .room{ color:#374151 }
+.roster-header .count{ font-weight:800; white-space:nowrap }
+
+/* 3 columns desktop → 2 tablet → 1 phone */
+.name-grid{
+  padding:8px 10px 12px 10px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:6px 24px;
+}
+@media (max-width: 900px){ .name-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px){ .name-grid{ grid-template-columns: 1fr; } }
+
+.name{
+  padding:2px 0;
+  border-bottom:1px solid var(--line-soft);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.name:last-child{ border-bottom:0 }
+
+/* Fallback if JS dies early */
 .nojs{background:#fff3cd;color:#3b2a00;border:1px solid #ffe69c;padding:10px;border-radius:10px;margin:12px 0}
-.locknote{color:var(--muted);font-size:12px}
+
 @media print{.header,.tabs,.printbar,.badge{display:none !important}}
 </style>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 </head>
 <body>
 <noscript><div class="wrap"><div class="nojs">JavaScript is disabled. Turn it on to use Workshop Sorter.</div></div></noscript>
 
-<div class="header"><div class="wrap brand"><div class="title">Workshop Sorter</div></div></div>
+<div class="header">
+  <div class="wrap brand"><div class="title">Workshop Sorter</div></div>
+</div>
 
 <div class="wrap" id="appRoot" aria-busy="true">
   <!-- STEP 1 -->
   <div class="card">
     <div class="row" style="justify-content:space-between;align-items:flex-end">
-      <div><div class="badge">step 1 of 3</div><div style="margin-top:6px">Define workshops before loading students</div></div>
+      <div>
+        <div class="badge">step 1 of 3</div>
+        <div style="margin-top:6px">Define workshops before loading students</div>
+      </div>
       <div class="two" style="align-items:end;min-width:360px">
-        <div><label class="small">How many workshops (1–20)</label><select id="numWorkshops"><option value="0">Select count</option></select></div>
+        <div>
+          <label class="small">How many workshops (1–20)</label>
+          <select id="numWorkshops"><option value="0">Select count</option></select>
+        </div>
         <button id="buildWorkshopRows" class="ghost">Create rows</button>
       </div>
     </div>
     <div class="two" style="margin-top:10px">
-      <div><label class="small">Upload Workshops CSV (Workshop, Instructor, [Room], [Capacity])</label><input id="workshopCsvFile" type="file" accept=".csv"></div>
+      <div>
+        <label class="small">Upload Workshops CSV (Instructor, Workshop, Room, Capacity)</label>
+        <input id="workshopCsvFile" type="file" accept=".csv">
+      </div>
       <div id="workshopDrop" class="dropzone" tabindex="0" role="button" aria-label="Drop workshops CSV here or click to browse">Drag and drop Workshops CSV here</div>
     </div>
     <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
@@ -94,7 +173,9 @@ table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--li
       <button id="undoDelete" class="smallbtn" title="Undo last delete" disabled>Undo delete</button>
       <button id="clearWorkshops" class="smallbtn">Clear all</button>
     </div>
-    <fieldset id="wkFieldset" style="margin-top:10px;border:0;padding:0"><div id="wkContainer"></div></fieldset>
+    <fieldset id="wkFieldset" style="margin-top:10px;border:0;padding:0">
+      <div id="wkContainer"></div>
+    </fieldset>
     <div id="wkErrors" class="helper hidden"></div>
     <div class="row" style="justify-content:space-between;margin-top:8px">
       <div class="locknote hidden" id="lockNote">Workshops are locked. Click Reset all in Step 3 to start over.</div>
@@ -109,8 +190,10 @@ table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--li
     <div style="margin-top:6px">Load students with three ranked choices</div>
     <div class="two">
       <div>
-        <label class="small">Upload CSV with columns: Last, First, School, Choice1, Choice2, Choice3
-          <br>(Also supports legacy "Student, Choice1, Choice2, Choice3")</label>
+        <label class="small">
+          Upload CSV with columns: Last, First, Choice1, Choice2, Choice3
+          <br>(Also supports legacy Student, Choice1, Choice2, Choice3)
+        </label>
         <input id="csvFile" type="file" accept=".csv" disabled>
       </div>
       <div id="studentDrop" class="dropzone disabled" tabindex="0" role="button" aria-label="Drop students CSV here or click to browse">Drag and drop Student CSV here</div>
@@ -120,10 +203,9 @@ table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--li
       <div class="badge">loaded students</div>
       <div class="scrollbox">
         <table id="studentsTable" class="report">
-          <thead><tr>
-            <th>Last Name</th><th>First Name</th><th>School</th>
-            <th>First Choice</th><th>Second Choice</th><th>Third Choice</th><th>Issues</th>
-          </tr></thead>
+          <thead>
+            <tr><th>Last Name</th><th>First Name</th><th>First Choice</th><th>Second Choice</th><th>Third Choice</th><th>Issues</th></tr>
+          </thead>
           <tbody></tbody>
         </table>
       </div>
@@ -164,7 +246,9 @@ table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--li
           <div>Unplaced: <span id="kvUnplaced"></span></div>
         </div>
         <table id="balanceTable" class="report">
-          <colgroup><col style="width:28%"><col style="width:34%"><col style="width:12%"><col style="width:12%"><col style="width:14%"></colgroup>
+          <colgroup>
+            <col style="width:28%"><col style="width:34%"><col style="width:12%"><col style="width:12%"><col style="width:14%">
+          </colgroup>
           <thead><tr><th>Instructor</th><th>Workshop</th><th>Capacity</th><th>Assigned</th><th>Room</th></tr></thead>
           <tbody></tbody>
         </table>
@@ -177,7 +261,7 @@ table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--li
       <div id="panelStudents" class="hidden">
         <div class="scrollbox">
           <table id="studentTable" class="report">
-            <thead><tr><th>Last Name</th><th>First Name</th><th>School</th><th>Assigned workshop</th><th>Room</th></tr></thead>
+            <thead><tr><th>Last Name</th><th>First Name</th><th>Assigned workshop</th><th>Room</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -188,7 +272,9 @@ table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--li
       </div>
 
       <div id="panelRosters" class="hidden">
-        <div class="scrollbox"><div id="rosterDoc"></div></div>
+        <div class="scrollbox">
+          <div id="rosterDoc"></div>
+        </div>
         <div class="printbar">
           <button id="printRosters" class="ghost">Export rosters (PDF)</button>
           <button id="exportRostersCsv" class="ghost">Export rosters (.csv)</button>
@@ -198,7 +284,7 @@ table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--li
       <div id="panelUnplaced" class="hidden">
         <div class="scrollbox">
           <table id="unplacedTable" class="report">
-            <thead><tr><th>Last Name</th><th>First Name</th><th>School</th><th>Preference</th><th>Reason</th></tr></thead>
+            <thead><tr><th>Last Name</th><th>First Name</th><th>Choices in rank order</th><th>Reason</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -214,627 +300,816 @@ table.report{border-collapse:separate;border-spacing:0;border:1px solid var(--li
 <script>
 function showInitError(msg){
   try{
-    const root=document.getElementById('appRoot'); if(!root) return;
-    const d=document.createElement('div'); d.className='nojs';
+    const root=document.getElementById('appRoot');
+    if(!root) return;
+    const d=document.createElement('div');
+    d.className='nojs';
     d.textContent='There was an error initializing the app: ' + (msg||'unknown error');
     root.prepend(d);
   }catch(_){}
 }
 
 try{
+  // Global DnD guard
   ['dragenter','dragover','drop'].forEach(evt=>{
     document.addEventListener(evt, e=>{
       if (e.target && e.target.closest && e.target.closest('.dropzone')) return;
-      e.preventDefault();
-    }, false);
+      if (evt !== 'drop') {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'none';
+      } else {
+        e.preventDefault();
+      }
+    }, {passive:false});
   });
 
-  // ============ UTILITY FUNCTIONS ============
-  
-  // Clean text for display and storage - fixes encoding issues
-  function cleanText(str) {
-    if (!str) return '';
-    return str.trim()
-      // Replace various apostrophe types with standard apostrophe
-      .replace(/[\u2019\u2018\u00B4\u0060\u02BC\uFF07\u�]/g, "'")
-      // Replace special question marks
-      .replace(/[\uFF1F\u�]/g, "?")
-      // Normalize whitespace
-      .replace(/\s+/g, ' ');
-  }
-  
-  // Normalize text for comparison (case-insensitive)
-  function normalizeForComparison(str) {
-    if (!str) return '';
-    return cleanText(str).toLowerCase();
-  }
+  const numWorkshops=document.getElementById('numWorkshops');
+  const buildWorkshopRows=document.getElementById('buildWorkshopRows');
+  const workshopCsvFile=document.getElementById('workshopCsvFile');
+  const workshopDrop=document.getElementById('workshopDrop');
+  const importWorkshopsBtn=document.getElementById('importWorkshopsBtn');
+  const addWorkshopRowBtn=document.getElementById('addWorkshopRow');
+  const undoDeleteBtn=document.getElementById('undoDelete');
+  const wkFieldset=document.getElementById('wkFieldset');
+  const wkContainer=document.getElementById('wkContainer');
+  const wkErrors=document.getElementById('wkErrors');
+  const lockWorkshops=document.getElementById('lockWorkshops');
+  const clearWorkshops=document.getElementById('clearWorkshops');
+  const lockNote=document.getElementById('lockNote');
+  const csvFile=document.getElementById('csvFile');
+  const studentDrop=document.getElementById('studentDrop');
+  const resultsCard=document.getElementById('resultsCard');
+  const tabSummary=document.getElementById('tabSummary');
+  const tabStudents=document.getElementById('tabStudents');
+  const tabRosters=document.getElementById('tabRosters');
+  const tabUnplaced=document.getElementById('tabUnplaced');
+  const panelSummary=document.getElementById('panelSummary');
+  const panelStudents=document.getElementById('panelStudents');
+  const panelRosters=document.getElementById('panelRosters');
+  const panelUnplaced=document.getElementById('panelUnplaced');
+  const kvStudents=document.getElementById('kvStudents');
+  const kvWorkshops=document.getElementById('kvWorkshops');
+  const kvCapacity=document.getElementById('kvCapacity');
+  const kvUnplaced=document.getElementById('kvUnplaced');
+  const balanceTableBody=document.querySelector('#balanceTable tbody');
+  const studentTableBody=document.querySelector('#studentTable tbody');
+  const rosterDoc=document.getElementById('rosterDoc');
+  const unplacedTableBody=document.querySelector('#unplacedTable tbody');
+  const studentsPreview=document.getElementById('studentsPreview');
+  const studentsTableBody=document.querySelector('#studentsTable tbody');
+  const runBtn=document.getElementById('runBtn');
+  const printStudentsBtn=document.getElementById('printStudents');
+  const exportStudentsCsvBtn=document.getElementById('exportStudentsCsv');
+  const printSummaryBtn=document.getElementById('printSummary');
+  const exportSummaryCsvBtn=document.getElementById('exportSummaryCsv');
+  const printAssignmentsBtn=document.getElementById('printAssignments');
+  const exportAssignmentsCsvBtn=document.getElementById('exportAssignmentsCsv');
+  const printRostersBtn=document.getElementById('printRosters');
+  const exportRostersCsvBtn=document.getElementById('exportRostersCsv');
+  const printUnplacedBtn=document.getElementById('printUnplaced');
+  const exportUnplacedCsvBtn=document.getElementById('exportUnplacedCsv');
 
-  // Find workshop by name (case-insensitive, encoding-tolerant)
-  function findWorkshopByName(name, workshopList) {
-    const normalized = normalizeForComparison(name);
-    return workshopList.find(w => normalizeForComparison(w.name) === normalized);
-  }
+  if(!numWorkshops || !buildWorkshopRows || !wkContainer){ showInitError('Missing core DOM nodes.'); throw new Error('missing anchors'); }
 
-  // Check if workshop name exists in list
-  function workshopExists(name, workshopList) {
-    return !!findWorkshopByName(name, workshopList);
-  }
+  let locked=false;
+  let workshopList=[];
+  let students=[];
+  let assignMap=new Map();
+  let unplaced=[];
+  let deletedStack=[];
 
-  function parseCSV(text) {
-    const lines = text.split(/\r?\n/).filter(l => l.trim());
-    if (!lines.length) return [];
-    const rows = [];
-    for (let line of lines) {
-      const row = [];
-      let inQuote = false, cell = '';
-      for (let i = 0; i < line.length; i++) {
-        const c = line[i], next = line[i + 1];
-        if (c === '"') {
-          if (inQuote && next === '"') { cell += '"'; i++; }
-          else inQuote = !inQuote;
-        } else if (c === ',' && !inQuote) {
-          row.push(cell.trim()); cell = '';
-        } else {
-          cell += c;
-        }
+  document.addEventListener('DOMContentLoaded',()=>{
+    for(let i=1;i<=20;i++){const o=document.createElement('option');o.value=o.textContent=String(i);numWorkshops.appendChild(o);}
+    document.getElementById('appRoot')?.setAttribute('aria-busy','false');
+  });
+
+  // normalization
+  const normalize=(s)=>{
+    let t = s == null ? '' : String(s).trim();
+    t = t.replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[‐-–—]/g,'-').replace(/\s+/g,' ').replace(/\s*[?.!]+$/,'');
+    return t;
+  };
+  const key=(s)=> normalize(s).toLowerCase().replace(/[^a-z0-9 &-]/g,'').replace(/\s+/g,' ').trim();
+
+  const enableRunIfReady=()=>{ runBtn.disabled=!(locked && students.length>0); };
+
+  let runSeed='';
+  const makeSeed=()=>{ try{const a=new Uint32Array(2);crypto.getRandomValues(a);return a[0]+'-'+a[1];}catch(_){return Date.now()+'-'+Math.floor(Math.random()*1e9)}};
+  const setRunSeed=(s)=>{ runSeed=String(s||makeSeed()); console.log('Draw seed:',runSeed); };
+
+  // robust drop handlers
+  function setDropHandlers({zone, onFile, input, acceptExts=['.csv']}){
+    if(!zone) return;
+    let dragDepth = 0;
+    const isDisabled = ()=> zone.classList.contains('disabled') || zone.hasAttribute('aria-disabled');
+    const highlight  = ()=>{ if(!isDisabled()) zone.classList.add('drag'); };
+    const unhighlight= ()=> zone.classList.remove('drag');
+    const openPicker = ()=>{ if(input && !isDisabled()){ input.click(); } };
+
+    zone.addEventListener('click', openPicker);
+    zone.addEventListener('keydown', (e)=>{ if((e.key==='Enter'||e.key===' ') && !isDisabled()){ e.preventDefault(); openPicker(); } });
+
+    const hasFilesType = (dt)=> {
+      try{ const types = dt && dt.types ? Array.from(dt.types) : []; return !types.length || types.includes('Files'); }
+      catch{ return true; }
+    };
+    const pickFile = (dt)=>{
+      if (dt?.files?.length) return dt.files[0];
+      if (dt?.items?.length){
+        for (const it of dt.items){ if (it.kind==='file'){ const f=it.getAsFile?.(); if(f) return f; } }
       }
-      row.push(cell.trim());
-      rows.push(row);
+      return null;
+    };
+    const isAccepted = (file)=>{
+      const lname=(file?.name||'').toLowerCase();
+      return acceptExts.length===0 || acceptExts.some(ext=>lname.endsWith(ext));
+    };
+
+    zone.addEventListener('dragenter', (e)=>{
+      if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return;
+      e.preventDefault(); dragDepth++; highlight();
+    }, {passive:false});
+    zone.addEventListener('dragover', (e)=>{
+      if(isDisabled()) return; if(!hasFilesType(e.dataTransfer)) return;
+      e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='copy';
+    }, {passive:false});
+    zone.addEventListener('dragleave', (e)=>{
+      if(isDisabled()) return; e.preventDefault();
+      dragDepth=Math.max(0,dragDepth-1); if(dragDepth===0) unhighlight();
+    }, {passive:false});
+    zone.addEventListener('drop', (e)=>{
+      if(isDisabled()) return; e.preventDefault(); dragDepth=0; unhighlight();
+      const file=pickFile(e.dataTransfer);
+      if(!file){ alert('No file found in drop. Please drop a CSV file.'); return; }
+      if(!isAccepted(file)){ alert('Please drop a .csv file.'); return; }
+      onFile(file);
+    }, {passive:false});
+  }
+
+  function setWorkshopControlsEnabled(enabled){
+    numWorkshops.disabled=!enabled;
+    buildWorkshopRows.disabled=!enabled;
+    addWorkshopRowBtn.disabled=!enabled;
+    importWorkshopsBtn.disabled=!enabled;
+    workshopCsvFile.disabled=!enabled;
+    workshopDrop?.classList.toggle('disabled',!enabled);
+    undoDeleteBtn.disabled=!enabled || deletedStack.length===0;
+    clearWorkshops.disabled=!enabled;
+  }
+
+  buildWorkshopRows.onclick=()=>{
+    const n=parseInt(numWorkshops.value,10);
+    if(!n||n<1||n>20){alert('Choose 1 to 20 workshops');return;}
+    renderWorkshopGrid(n);
+  };
+
+  function ensureHeader(){
+    if(!wkContainer.querySelector('.wkHeader')){
+      const header=document.createElement('div');
+      header.className='wkHeader';
+      header.innerHTML=`<div class="five" style="font-size:12px;color:#6b7280;margin-bottom:6px">
+        <div>Instructor</div><div>Workshop name</div><div>Capacity</div><div>Room (optional)</div><div></div></div>`;
+      wkContainer.appendChild(header);
     }
+  }
+  function newRow({instructor='',name='',capacity='12',room=''}={}){
+    const row=document.createElement('div');
+    row.className='five wkRow';
+    row.innerHTML=`<input type="text" class="wkInstructor" placeholder="Instructor name" value="${instructor}">
+      <input type="text" class="wkName" placeholder="Workshop" value="${name}">
+      <input type="number" class="wkCap" min="1" value="${capacity}">
+      <input type="text" class="wkRoom" placeholder="e.g., BH 101 (optional)" value="${room}">
+      <button type="button" class="smallbtn wkDel" title="Delete this row">×</button>`;
+    wkContainer.appendChild(row);
+  }
+  function renderWorkshopGrid(n){
+    wkContainer.innerHTML="";
+    ensureHeader();
+    deletedStack=[]; updateUndoState();
+    for(let i=0;i<n;i++) newRow({capacity:''});
+  }
+  addWorkshopRowBtn.onclick=()=>{ if(locked) return; ensureHeader(); newRow(); };
+
+  wkContainer.addEventListener('click',(e)=>{
+    const btn=e.target.closest?.('.wkDel'); if(!btn || locked) return;
+    const row=btn.closest('.wkRow'); if(!row) return;
+    const fields=row.querySelectorAll('input');
+    const data={ instructor: fields[0]?.value||'', name: fields[1]?.value||'', capacity: fields[2]?.value||'12', room: fields[3]?.value||'' };
+    const rows=[...wkContainer.querySelectorAll('.wkRow')];
+    const index=rows.indexOf(row);
+    deletedStack.push({data,index});
+    row.remove();
+    updateUndoState();
+  });
+  function updateUndoState(){ undoDeleteBtn.disabled = locked || deletedStack.length===0; }
+  undoDeleteBtn.onclick=()=>{
+    if(locked||deletedStack.length===0) return;
+    ensureHeader();
+    const {data,index}=deletedStack.pop();
+    const rows=[...wkContainer.querySelectorAll('.wkRow')];
+    const marker = rows[index] || null;
+    const row=document.createElement('div');
+    row.className='five wkRow';
+    row.innerHTML=`<input type="text" class="wkInstructor" placeholder="Instructor name" value="${data.instructor}">
+      <input type="text" class="wkName" placeholder="Workshop" value="${data.name}">
+      <input type="number" class="wkCap" min="1" value="${data.capacity || '12'}">
+      <input type="text" class="wkRoom" placeholder="e.g., BH 101 (optional)" value="${data.room}">
+      <button type="button" class="smallbtn wkDel" title="Delete this row">×</button>`;
+    if(marker){ wkContainer.insertBefore(row, marker); } else { wkContainer.appendChild(row); }
+    updateUndoState();
+  };
+
+  clearWorkshops.onclick=()=>{
+    wkContainer.innerHTML=""; numWorkshops.value="0"; wkErrors.classList.add('hidden');
+    enableStudentsSection(false); locked=false; wkFieldset.classList.remove('locked'); lockNote.classList.add('hidden');
+    setWorkshopControlsEnabled(true); lockWorkshops.textContent='Lock workshops and continue'; lockWorkshops.disabled=false;
+    document.querySelectorAll('.wkInstructor,.wkName,.wkCap,.wkRoom,.wkDel').forEach(el=>{ if('disabled' in el) el.disabled=false; });
+    deletedStack=[]; updateUndoState(); enableRunIfReady();
+  };
+
+  // CSV utils
+  function splitCSV(line){
+    const out=[];
+    const regex=/\s*(?:"([^"]*(?:""[^"]*)*)"|([^,""]*))\s*(,|$)/g;
+    let m;
+    while((m=regex.exec(line))){ out.push(m[1]?m[1].replace(/""/g,'"'):m[2]); if(!m[3]) break; }
+    return out;
+  }
+  function parseCSV(text){
+    const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    const rows=[];
+    for(const l of lines) rows.push(splitCSV(l).map(c=>c.trim()));
     return rows;
   }
+  function extractInt(str){ if(str==null) return null; const m=String(str).match(/-?\d+/); if(!m) return null; const n=parseInt(m[0],10); return Number.isFinite(n)?n:null; }
 
-  function escHTML(s) {
-    const div = document.createElement('div');
-    div.textContent = s || '';
-    return div.innerHTML;
-  }
+  // Detect columns for Workshops CSV (supports headerless: [Instructor, Workshop, Room, Capacity])
+  function detectWorkshopColumns(rows){
+    if(!rows.length) return {wIdx:0,iIdx:1,cIdx:null,rIdx:null,startIdx:0};
 
-  function $(id) { return document.getElementById(id); }
+    const hdr = rows[0].map(c => String(c ?? '').toLowerCase());
+    const hasHeaderToken = (h)=> /(^|\b)(workshop|instructor|capacit|room|location|rm)(\b|$)/.test(h);
 
-  // ============ STATE ============
-  let workshops = [];
-  let students = [];
-  let assignments = [];
-  let deletedWorkshops = [];
-  let workshopsLocked = false;
-
-  // ============ WORKSHOP MANAGEMENT ============
-  const numWorkshopsEl = $('numWorkshops');
-  for (let i = 1; i <= 20; i++) {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = i;
-    numWorkshopsEl.appendChild(opt);
-  }
-
-  $('buildWorkshopRows').onclick = () => {
-    if (workshopsLocked) return;
-    const n = parseInt(numWorkshopsEl.value, 10);
-    if (!n || n < 1 || n > 20) return alert('Select a valid number between 1 and 20');
-    workshops = Array.from({ length: n }, () => ({ name: '', instructor: '', room: '', capacity: 12 }));
-    renderWorkshops();
-  };
-
-  $('addWorkshopRow').onclick = () => {
-    if (workshopsLocked) return;
-    workshops.push({ name: '', instructor: '', room: '', capacity: 12 });
-    renderWorkshops();
-  };
-
-  $('clearWorkshops').onclick = () => {
-    if (workshopsLocked) return;
-    if (!confirm('Clear all workshops?')) return;
-    workshops = [];
-    deletedWorkshops = [];
-    renderWorkshops();
-  };
-
-  $('undoDelete').onclick = () => {
-    if (workshopsLocked || !deletedWorkshops.length) return;
-    const last = deletedWorkshops.pop();
-    workshops.splice(last.index, 0, last.workshop);
-    renderWorkshops();
-  };
-
-  function renderWorkshops() {
-    const container = $('wkContainer');
-    container.innerHTML = '';
-    if (!workshops.length) {
-      container.innerHTML = '<div class="note">No workshops defined yet. Set a count above or import a CSV.</div>';
-      $('undoDelete').disabled = true;
-      return;
+    // Header present → map by names
+    if (hdr.some(hasHeaderToken)) {
+      const findIdx=(rxs)=> hdr.findIndex(h=>rxs.some(rx=>rx.test(h)));
+      let wIdx=findIdx([/workshop/]),
+          iIdx=findIdx([/instructor/]),
+          cIdx=findIdx([/capacit/,/^cap$/,/(max|seats|size)/]),
+          rIdx=findIdx([/room\s*#?/,/room number/,/^room$/,/(location|^rm$|rm\.)/]);
+      if(wIdx===-1) wIdx=(iIdx===0?1:0);
+      if(iIdx===-1) iIdx=(wIdx===0?1:0);
+      if(cIdx===-1) cIdx=null;
+      if(rIdx===-1) rIdx=null;
+      return {wIdx,iIdx,cIdx,rIdx,startIdx:1};
     }
-    workshops.forEach((w, i) => {
-      const row = document.createElement('div');
-      row.className = 'five';
-      row.style.marginBottom = '8px';
-      row.innerHTML = `
-        <input type="text" placeholder="Instructor" value="${escHTML(w.instructor)}" data-idx="${i}" data-field="instructor" ${workshopsLocked ? 'disabled' : ''}>
-        <input type="text" placeholder="Workshop name" value="${escHTML(w.name)}" data-idx="${i}" data-field="name" ${workshopsLocked ? 'disabled' : ''}>
-        <input type="text" placeholder="Room" value="${escHTML(w.room)}" data-idx="${i}" data-field="room" ${workshopsLocked ? 'disabled' : ''}>
-        <input type="number" placeholder="Capacity" value="${w.capacity}" data-idx="${i}" data-field="capacity" min="1" ${workshopsLocked ? 'disabled' : ''}>
-        <button class="smallbtn" data-delete="${i}" title="Delete" ${workshopsLocked ? 'disabled' : ''}>✕</button>
-      `;
-      container.appendChild(row);
-    });
-    container.querySelectorAll('input').forEach(inp => {
-      inp.oninput = e => {
-        const idx = parseInt(e.target.dataset.idx, 10);
-        const field = e.target.dataset.field;
-        if (field === 'capacity') {
-          workshops[idx][field] = parseInt(e.target.value, 10) || 12;
-        } else {
-          workshops[idx][field] = e.target.value;
-        }
-      };
-    });
-    container.querySelectorAll('[data-delete]').forEach(btn => {
-      btn.onclick = () => {
-        const idx = parseInt(btn.dataset.delete, 10);
-        deletedWorkshops.push({ index: idx, workshop: workshops[idx] });
-        workshops.splice(idx, 1);
-        renderWorkshops();
-      };
-    });
-    $('undoDelete').disabled = deletedWorkshops.length === 0 || workshopsLocked;
+
+    // No header → assume [Instructor, Workshop, Room, Capacity]
+    const first = rows[0] || [];
+    const cols = first.length;
+    const iIdx = cols > 0 ? 0 : null;
+    const wIdx = cols > 1 ? 1 : null;
+    const rIdx = cols > 2 ? 2 : null;
+    const cIdx = cols > 3 ? 3 : null;
+    return { wIdx, iIdx, cIdx, rIdx, startIdx:0 };
   }
 
-  // ============ WORKSHOP CSV IMPORT ============
-  const workshopCsvFile = $('workshopCsvFile');
-  const workshopDrop = $('workshopDrop');
+  async function importWorkshopsFromFile(file){
+    try{
+      const fname=(file?.name||'').toLowerCase();
+      if(!fname.endsWith('.csv')){alert('Please use a .csv file for workshops (not .xlsx).');return;}
+      const text=await file.text();
+      const rows=parseCSV(text);
+      if(rows.length && rows[0].length){ rows[0][0]=String(rows[0][0]).replace(/^\uFEFF/,''); }
+      if(rows.length===0){alert('No rows found');return;}
 
-  function handleWorkshopFile(file) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = evt => {
-      try {
-        const rows = parseCSV(evt.target.result);
-        if (rows.length < 2) return alert('Workshop CSV must have at least a header and one row');
-        const data = rows.slice(1).map(r => ({
-          name: cleanText(r[0] || ''),
-          instructor: cleanText(r[1] || ''),
-          room: cleanText(r[2] || ''),
-          capacity: parseInt(r[3], 10) || 12
-        })).filter(w => w.name.trim());
-        if (!data.length) return alert('No valid workshops found in CSV');
-        workshops = data;
-        deletedWorkshops = [];
-        renderWorkshops();
-      } catch (err) {
-        alert('Error parsing workshop CSV: ' + err.message);
+      const {wIdx,iIdx,cIdx,rIdx,startIdx}=detectWorkshopColumns(rows);
+      const seen=new Map();
+
+      for(let i=startIdx;i<rows.length;i++){
+        const row = rows[i] || [];
+        const rawW = row[wIdx] ?? '';
+        const rawI = row[iIdx] ?? '';
+        const rawC = cIdx!=null ? row[cIdx] : '';
+        const rawR = rIdx!=null ? row[rIdx] : '';
+
+        const name = normalize(rawW);
+        const instructor = normalize(rawI);
+        const room = normalize(rawR || '');
+        const capNum = extractInt(rawC);
+        let capacity = '12';
+        if(Number.isFinite(capNum) && capNum > 0) capacity = String(capNum);
+
+        if (!name && !instructor) continue;
+        if (!name) continue;
+
+        const k = key(name) + '|' + key(instructor);
+        if(!seen.has(k)) seen.set(k,{name,instructor,capacity,room});
       }
-    };
-    reader.readAsText(file);
+
+      const unique=[...seen.values()];
+      if(unique.length===0){alert('No workshop names found');return;}
+      unique.sort((a,b)=>a.name.localeCompare(b.name) || a.instructor.localeCompare(b.instructor));
+
+      wkContainer.innerHTML=""; ensureHeader(); deletedStack=[]; updateUndoState();
+      unique.forEach(row=>newRow(row));
+      document.querySelectorAll('.wkCap').forEach(el=>{ if(!String(el.value).trim()) el.value='12'; });
+      wkErrors.classList.add('hidden');
+    }catch(e){console.error(e);alert('Could not read workshops CSV.');}
   }
 
-  workshopCsvFile.onchange = e => {
-    if (workshopsLocked) return;
-    handleWorkshopFile(e.target.files[0]);
-  };
+  importWorkshopsBtn.onclick=()=>{ const f=workshopCsvFile.files?.[0]; if(!f){alert('Choose a workshops CSV file first');return;} importWorkshopsFromFile(f); };
+  workshopCsvFile.addEventListener('change', ()=>{ const f=workshopCsvFile.files?.[0]; if(f) importWorkshopsFromFile(f); });
+  setDropHandlers({zone: workshopDrop, onFile: importWorkshopsFromFile, input: workshopCsvFile, acceptExts:['.csv']});
 
-  workshopDrop.onclick = () => {
-    if (workshopsLocked) return;
-    workshopCsvFile.click();
-  };
-
-  workshopDrop.ondragenter = workshopDrop.ondragover = e => {
-    if (workshopsLocked) return;
-    e.preventDefault();
-    workshopDrop.classList.add('drag');
-  };
-
-  workshopDrop.ondragleave = e => {
-    if (e.target === workshopDrop) workshopDrop.classList.remove('drag');
-  };
-
-  workshopDrop.ondrop = e => {
-    if (workshopsLocked) return;
-    e.preventDefault();
-    workshopDrop.classList.remove('drag');
-    const file = e.dataTransfer?.files[0];
-    if (file) handleWorkshopFile(file);
-  };
-
-  $('importWorkshopsBtn').onclick = () => {
-    if (workshopsLocked) return;
-    workshopCsvFile.click();
-  };
-
-  // ============ LOCK WORKSHOPS ============
-  $('lockWorkshops').onclick = () => {
-    const missing = workshops.filter(w => !w.name.trim() || !w.instructor.trim());
-    if (missing.length) return alert('All workshops must have a name and instructor before locking');
-    workshopsLocked = true;
-    $('lockNote').classList.remove('hidden');
-    $('lockWorkshops').disabled = true;
-    $('csvFile').disabled = false;
-    $('studentDrop').classList.remove('disabled');
-    $('wkFieldset').disabled = true;
-    $('numWorkshops').disabled = true;
-    $('buildWorkshopRows').disabled = true;
-    $('addWorkshopRow').disabled = true;
-    $('clearWorkshops').disabled = true;
-    $('undoDelete').disabled = true;
-    $('workshopCsvFile').disabled = true;
-    $('importWorkshopsBtn').disabled = true;
-    renderWorkshops();
-  };
-
-  // ============ STUDENT CSV IMPORT ============
-  const csvFile = $('csvFile');
-  const studentDrop = $('studentDrop');
-
-  function handleStudentFile(file) {
-    if (!file || !workshopsLocked) return;
-    const reader = new FileReader();
-    reader.onload = evt => {
-      try {
-        const rows = parseCSV(evt.target.result);
-        if (rows.length < 2) return alert('Student CSV must have at least a header and one row');
-        const header = rows[0].map(h => h.toLowerCase().trim());
-        const hasLast = header.includes('last name') || header.includes('last');
-        const hasFirst = header.includes('first name') || header.includes('first');
-        const hasSchool = header.includes('school') || header.some(h => h.includes('school'));
-        
-        let parsed = [];
-        if (hasLast && hasFirst) {
-          const lastIdx = header.findIndex(h => h === 'last name' || h === 'last');
-          const firstIdx = header.findIndex(h => h === 'first name' || h === 'first');
-          const schoolIdx = header.findIndex(h => h === 'school' || h.includes('school'));
-          const c1Idx = header.findIndex(h => h.includes('choice') || h.includes('academic workshop'));
-          const c2Idx = header.findIndex((h, i) => i > c1Idx && (h.includes('choice') || h.includes('academic workshop')));
-          const c3Idx = header.findIndex((h, i) => i > c2Idx && (h.includes('choice') || h.includes('academic workshop')));
-          
-          parsed = rows.slice(1).map(r => ({
-            lastName: cleanText(r[lastIdx] || ''),
-            firstName: cleanText(r[firstIdx] || ''),
-            school: schoolIdx >= 0 ? cleanText(r[schoolIdx] || '') : '',
-            choice1: cleanText(r[c1Idx] || ''),
-            choice2: cleanText(r[c2Idx] || ''),
-            choice3: cleanText(r[c3Idx] || '')
-          }));
-        } else {
-          parsed = rows.slice(1).map(r => ({
-            lastName: '',
-            firstName: cleanText(r[0] || ''),
-            school: '',
-            choice1: cleanText(r[1] || ''),
-            choice2: cleanText(r[2] || ''),
-            choice3: cleanText(r[3] || '')
-          }));
-        }
-        
-        students = parsed.filter(s => s.firstName.trim() || s.lastName.trim());
-        if (!students.length) return alert('No valid students found in CSV');
-        
-        renderStudentsPreview();
-        $('runBtn').disabled = false;
-      } catch (err) {
-        alert('Error parsing student CSV: ' + err.message);
-      }
-    };
-    reader.readAsText(file);
-  }
-
-  csvFile.onchange = e => handleStudentFile(e.target.files[0]);
-  studentDrop.onclick = () => {
-    if (!workshopsLocked) return;
-    csvFile.click();
-  };
-
-  studentDrop.ondragenter = studentDrop.ondragover = e => {
-    if (!workshopsLocked) return;
-    e.preventDefault();
-    studentDrop.classList.add('drag');
-  };
-
-  studentDrop.ondragleave = e => {
-    if (e.target === studentDrop) studentDrop.classList.remove('drag');
-  };
-
-  studentDrop.ondrop = e => {
-    if (!workshopsLocked) return;
-    e.preventDefault();
-    studentDrop.classList.remove('drag');
-    const file = e.dataTransfer?.files[0];
-    if (file) handleStudentFile(file);
-  };
-
-  function renderStudentsPreview() {
-    const tbody = $('studentsTable').querySelector('tbody');
-    tbody.innerHTML = '';
-    let hasIssues = false;
-    
-    students.forEach(s => {
-      const issues = [];
-      const choices = [s.choice1, s.choice2, s.choice3].filter(c => c.trim());
-      
-      if (choices.length < 3) issues.push('Missing choice(s)');
-      
-      const uniqueChoices = new Set(choices.map(c => normalizeForComparison(c)));
-      if (uniqueChoices.size !== choices.length) issues.push('Duplicate choices');
-      
-      choices.forEach(c => {
-        if (!workshopExists(c, workshops)) {
-          issues.push(`Unknown: "${c}"`);
-        }
-      });
-      
-      const hasIssue = issues.length > 0;
-      if (hasIssue) hasIssues = true;
-      
-      const tr = document.createElement('tr');
-      if (hasIssue) tr.className = 'row-issue';
-      tr.innerHTML = `
-        <td>${escHTML(s.lastName)}</td>
-        <td>${escHTML(s.firstName)}</td>
-        <td>${escHTML(s.school)}</td>
-        <td>${escHTML(s.choice1)}</td>
-        <td>${escHTML(s.choice2)}</td>
-        <td>${escHTML(s.choice3)}</td>
-        <td><div class="issues">${issues.map(iss => `<span class="issue-pill">${escHTML(iss)}</span>`).join('')}</div></td>
-      `;
-      tbody.appendChild(tr);
-    });
-    
-    $('studentsPreview').classList.remove('hidden');
-    if (hasIssues) {
-      $('issueLegend').classList.remove('hidden');
-    } else {
-      $('issueLegend').classList.add('hidden');
+  lockWorkshops.onclick=()=>{
+    const names=[...document.querySelectorAll('.wkName')],
+          caps=[...document.querySelectorAll('.wkCap')],
+          instr=[...document.querySelectorAll('.wkInstructor')],
+          rooms=[...document.querySelectorAll('.wkRoom')];
+    if(names.length===0){alert('Create or import workshop rows first');return;}
+    wkErrors.classList.add('hidden');
+    let hasError=false;
+    const seen=new Set();
+    workshopList=[];
+    for(let i=0;i<names.length;i++){
+      const name=normalize(names[i].value),
+            capStr=caps[i].value.trim(),
+            ins=normalize(instr[i].value),
+            room=normalize(rooms[i].value);
+      let cap=extractInt(capStr);
+      [names[i],caps[i],instr[i],rooms[i]].forEach(e=>e.classList.remove('invalid'));
+      if(!name){names[i].classList.add('invalid');hasError=true;}
+      if(!ins){instr[i].classList.add('invalid');hasError=true;}
+      if(!Number.isFinite(cap)||cap<1){cap=12;}
+      const k=key(name)+'|'+key(ins);
+      if(seen.has(k)){names[i].classList.add('invalid');hasError=true;}
+      seen.add(k);
+      workshopList.push({room,name,instructor:ins,capacity:cap});
     }
+    if(hasError){wkErrors.textContent='Please fix highlighted fields.';wkErrors.classList.remove('hidden');return;}
+
+    workshopList.sort((a,b)=>a.name.localeCompare(b.name) || a.instructor.localeCompare(b.instructor));
+    document.querySelectorAll('.wkInstructor,.wkName,.wkCap,.wkRoom,.wkDel').forEach(el=>{ if('disabled' in el) el.disabled=true; });
+    wkFieldset.classList.add('locked'); lockNote.classList.remove('hidden');
+
+    locked=true; setWorkshopControlsEnabled(false);
+    lockWorkshops.textContent='Workshops locked'; lockWorkshops.disabled=true;
+
+    enableStudentsSection(true); enableRunIfReady();
+  };
+  function enableStudentsSection(enable){
+    if(csvFile) csvFile.disabled=!enable;
+    studentDrop?.classList.toggle('disabled',!enable);
+    if(enable){ studentDrop.setAttribute('tabindex','0'); } else { studentDrop.removeAttribute('tabindex'); }
   }
 
-  // ============ ASSIGNMENT ALGORITHM ============
-  $('runBtn').onclick = () => {
-    if (!workshopsLocked || !students.length) return;
-    
-    const wsMap = new Map();
-    workshops.forEach((w, i) => {
-      wsMap.set(normalizeForComparison(w.name), {
-        ...w,
-        index: i,
-        assigned: [],
-        slots: w.capacity
-      });
+  function buildStudents(rows){
+    const list=[];
+    const hdr=(rows[0]||[]).map(c=>c.toLowerCase());
+    let startIdx=0;
+    let mode='lastfirst';
+    let idx={last:0, first:1, c1:2, c2:3, c3:4};
+
+    const has = (t)=> hdr.includes(t);
+    if(hdr.length && (has('student') || /student/.test(hdr[0]||''))){
+      mode='legacy'; startIdx=1; idx={ student:0, c1:1, c2:2, c3:3 };
+    }else if(hdr.length){
+      if(hdr[0]!=='last' || hdr[1]!=='first') startIdx=0; else startIdx=1;
+    }
+
+    for(let i=startIdx;i<rows.length;i++){
+      const r=rows[i];
+      let last='', first='', picks=[];
+      if(mode==='legacy'){
+        const label = normalize(r[idx.student]||''); if(!label) continue;
+        const m = label.match(/^\s*([^,]+)\s*,\s*(.+)\s*$/);
+        if(m){ last=normalize(m[1]); first=normalize(m[2]); } else { last=label; first=''; }
+        picks=[normalize(r[idx.c1]||''), normalize(r[idx.c2]||''), normalize(r[idx.c3]||'')];
+      }else{
+        last=normalize(r[idx.last]||r[0]||''); first=normalize(r[idx.first]||r[1]||'');
+        picks=[normalize(r[idx.c1]||r[2]||''), normalize(r[idx.c2]||r[3]||''), normalize(r[idx.c3]||r[4]||'')];
+        if(!last && !first) continue;
+      }
+      const label = last ? (first ? `${last}, ${first}` : last) : first;
+      const id = label + '##' + i;
+      list.push({ id, last, first, label, preferences:[picks[0]||'',picks[1]||'',picks[2]||''] });
+    }
+    return list;
+  }
+
+  function validWorkshopKeySet(){
+    const set=new Set();
+    for(const w of workshopList) set.add(key(w.name));
+    return set;
+  }
+  function detectStudentIssues(s){
+    const [c1,c2,c3]=s.preferences.map(normalize);
+    const issues=[];
+    if ((c1 && c2 && c1===c2) || (c1 && c3 && c1===c3) || (c2 && c3 && c2===c3)) {
+      issues.push('Duplicate choices');
+    }
+    if(!c1 || !c2 || !c3) issues.push('Missing one or more choices');
+    const valid=validWorkshopKeySet();
+    const bad=[c1,c2,c3].filter(v=>v && !valid.has(key(v)));
+    if(bad.length>0) issues.push('Unknown workshop name');
+    return issues;
+  }
+
+  async function importStudentsFromFile(file){
+    try{
+      const name=(file?.name||'').toLowerCase();
+      if(!name.endsWith('.csv')){alert('Please use a .csv file (not .xlsx).');return;}
+      const text=await file.text();
+      if(!text.trim()){alert('This CSV looks empty.');return;}
+      const rows=parseCSV(text);
+      if(!rows.length){alert('No rows found in CSV.');return;}
+      students=buildStudents(rows);
+      if(students.length===0){alert('No student records detected.');return;}
+
+      students.forEach(s=>{ s._issues = detectStudentIssues(s); });
+
+      renderStudentsPreview(); enableRunIfReady();
+    }catch(err){console.error(err);alert('Could not read student CSV.');}
+  }
+
+  csvFile?.addEventListener('change',()=>{const f=csvFile.files?.[0];if(f)importStudentsFromFile(f);});
+  setDropHandlers({zone: studentDrop, onFile: importStudentsFromFile, input: csvFile, acceptExts:['.csv']});
+
+  function issuesHTML(issues){
+    if(!issues || !issues.length) return '';
+    return `<div class="issues" title="${issues.join(' • ')}">` +
+           issues.map(t=>`<span class="issue-pill">${t}</span>`).join('') +
+           `</div>`;
+  }
+
+  function renderStudentsPreview(){
+    if(students.length===0){studentsPreview.classList.add('hidden');return;}
+    studentsPreview.classList.remove('hidden');
+    studentsTableBody.innerHTML='';
+    const sorted=students.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+    let anyIssues=false;
+    for(const s of sorted){
+      const [c1,c2,c3]=s.preferences;
+      const issues = s._issues || [];
+      const tr=document.createElement('tr');
+      if(issues.length){ tr.classList.add('row-issue'); anyIssues=true; }
+      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${c1||''}</td><td>${c2||''}</td><td>${c3||''}</td><td>${issuesHTML(issues)}</td>`;
+      studentsTableBody.appendChild(tr);
+    }
+    const legend=document.getElementById('issueLegend');
+    if(legend) legend.classList.toggle('hidden', !anyIssues);
+  }
+
+  // Assignment
+  function hash32(str){
+    let h=2166136261>>>0;
+    for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=(h>>>0)*16777619>>>0;}
+    return h>>>0;
+  }
+  function stableLotteryOrder(candidates, seedStr){
+    const wsSeed = hash32(seedStr + '|' + runSeed);
+    return candidates.slice().sort((a,b)=>{
+      const ka = (hash32(String(a.id) + '|' + runSeed) ^ wsSeed) >>> 0;
+      const kb = (hash32(String(b.id) + '|' + runSeed) ^ wsSeed) >>> 0;
+      if (ka !== kb) return ka - kb;
+      const ka2 = (hash32('salt:'+String(a.id) + '|' + runSeed) ^ wsSeed) >>> 0;
+      const kb2 = (hash32('salt:'+String(b.id) + '|' + runSeed) ^ wsSeed) >>> 0;
+      return ka2 - kb2;
     });
-    
-    assignments = [];
-    const unplaced = [];
-    
-    students.forEach(s => {
-      let placed = false;
-      for (let choice of [s.choice1, s.choice2, s.choice3]) {
-        if (!choice.trim()) continue;
-        const ws = wsMap.get(normalizeForComparison(choice));
-        if (ws && ws.assigned.length < ws.slots) {
-          ws.assigned.push(s);
-          assignments.push({
-            student: s,
-            workshop: ws,
-            choiceLevel: choice === s.choice1 ? 1 : choice === s.choice2 ? 2 : 3
-          });
-          placed = true;
-          break;
+  }
+
+  function assignStudents(){
+    const nameToIdx=new Map();
+    workshopList.forEach((w,i)=>nameToIdx.set(key(w.name),i));
+
+    const cap=workshopList.map(w=>w.capacity);
+    const fill=new Array(workshopList.length).fill(0);
+    assignMap=new Map();
+    unplaced=[];
+
+    const unassigned = new Map(students.map(s=>[s.id,s]));
+
+    function passAssign(rankIdx){
+      const byWorkshop = new Map();
+      for(const s of unassigned.values()){
+        const choice = s.preferences[rankIdx] || '';
+        const k = key(choice);
+        if(!choice || !nameToIdx.has(k)) continue;
+        const idx = nameToIdx.get(k);
+        if(!byWorkshop.has(idx)) byWorkshop.set(idx, []);
+        byWorkshop.get(idx).push(s);
+      }
+      for(const [idx, group] of byWorkshop){
+        const seats = cap[idx] - fill[idx];
+        if(seats<=0) continue;
+        const ordered = stableLotteryOrder(group, workshopList[idx].name);
+        const winners = ordered.slice(0, seats);
+        for(const s of winners){
+          assignMap.set(s.id, workshopList[idx].name);
+          unassigned.delete(s.id);
+          fill[idx]+=1;
         }
       }
-      if (!placed) {
-        const prefs = [s.choice1, s.choice2, s.choice3].filter(c => c.trim()).join(', ') || 'None';
-        const reasons = [];
-        [s.choice1, s.choice2, s.choice3].forEach(c => {
-          if (!c.trim()) return;
-          const ws = wsMap.get(normalizeForComparison(c));
-          if (!ws) reasons.push(`"${c}" not found`);
-          else if (ws.assigned.length >= ws.slots) reasons.push(`"${c}" full`);
-        });
-        unplaced.push({
-          student: s,
-          preferences: prefs,
-          reason: reasons.join('; ') || 'No valid choices'
-        });
-      }
-    });
-    
-    renderResults(wsMap, unplaced);
-  };
+    }
 
-  // ============ RESULTS RENDERING ============
-  function renderResults(wsMap, unplaced) {
-    $('resultsCard').classList.remove('hidden');
-    
-    $('kvStudents').textContent = students.length;
-    $('kvWorkshops').textContent = workshops.length;
-    $('kvCapacity').textContent = workshops.reduce((sum, w) => sum + w.capacity, 0);
-    $('kvUnplaced').textContent = unplaced.length;
-    
-    const balanceBody = $('balanceTable').querySelector('tbody');
-    balanceBody.innerHTML = '';
-    workshops.forEach(w => {
-      const ws = wsMap.get(normalizeForComparison(w.name));
-      const assigned = ws ? ws.assigned.length : 0;
-      const tr = document.createElement('tr');
-      if (assigned > w.capacity) tr.className = 'row-issue';
-      tr.innerHTML = `
-        <td>${escHTML(w.instructor)}</td>
-        <td>${escHTML(w.name)}</td>
-        <td>${w.capacity}</td>
-        <td>${assigned}</td>
-        <td>${escHTML(w.room)}</td>
-      `;
-      balanceBody.appendChild(tr);
+    passAssign(0); passAssign(1); passAssign(2);
+
+    for(const s of [...unassigned.values()]){
+      let minFill = Infinity;
+      for (let i=0;i<workshopList.length;i++) if (fill[i] < cap[i]) minFill = Math.min(minFill, fill[i]);
+      const tied=[];
+      for (let i=0;i<workshopList.length;i++) if (fill[i] < cap[i] && fill[i]===minFill) tied.push(i);
+      if(tied.length>0){
+        const pick = tied[ hash32(String(s.id) + '|fallback|' + runSeed) % tied.length ];
+        assignMap.set(s.id, workshopList[pick].name);
+        unassigned.delete(s.id);
+        fill[pick]+=1;
+      }
+    }
+
+    for(const s of unassigned.values()){
+      const known = s.preferences.filter(p => nameToIdx.has(key(p)));
+      const reason = known.length===0 ? 'choices unknown' : 'no capacity remaining';
+      unplaced.push({id:s.id, last:s.last, first:s.first, preferences:s.preferences, reason});
+    }
+
+    return {fill};
+  }
+
+  runBtn.onclick=()=>{
+    if(!locked){alert('Lock workshops first');return;}
+    if(students.length===0){alert('Load students first');return;}
+    setRunSeed();
+    const {fill}=assignStudents();
+    students.forEach(s=>{ delete s._issues; });
+    renderReport(fill);
+  };
+  document.getElementById('resetAll').onclick=()=>location.reload();
+
+  function renderReport(fill){
+    resultsCard.classList.remove('hidden');
+    const totalCap=workshopList.reduce((a,w)=>a+w.capacity,0);
+    kvStudents.textContent=String(students.length);
+    kvWorkshops.textContent=String(workshopList.length);
+    kvCapacity.textContent=String(totalCap);
+    kvUnplaced.textContent=String(unplaced.length);
+
+    const roomByName = new Map(workshopList.map(w => [w.name, w.room || '']));
+
+    balanceTableBody.innerHTML='';
+    const wsSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name)||a.instructor.localeCompare(b.instructor));
+    wsSorted.forEach(w=>{
+      const idx=workshopList.findIndex(x=>x.name===w.name&&x.instructor===w.instructor&&x.capacity===w.capacity&&x.room===w.room);
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${w.instructor}</td><td>${w.name}</td><td>${w.capacity}</td><td>${fill[idx]}</td><td>${w.room||''}</td>`;
+      balanceTableBody.appendChild(tr);
     });
-    
-    const studentBody = $('studentTable').querySelector('tbody');
-    studentBody.innerHTML = '';
-    assignments.sort((a, b) => {
-      if (a.student.lastName !== b.student.lastName) return a.student.lastName.localeCompare(b.student.lastName);
-      return a.student.firstName.localeCompare(b.student.firstName);
-    }).forEach(a => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escHTML(a.student.lastName)}</td>
-        <td>${escHTML(a.student.firstName)}</td>
-        <td>${escHTML(a.student.school)}</td>
-        <td>${escHTML(a.workshop.name)}</td>
-        <td>${escHTML(a.workshop.room)}</td>
+
+    // Student assignments
+    studentTableBody.innerHTML='';
+    const stSorted=students.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+    for(const s of stSorted){
+      const assigned=assignMap.get(s.id)||'';
+      const room=roomByName.get(assigned)||'';
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${s.last}</td><td>${s.first}</td><td>${assigned}</td><td>${room}</td>`;
+      studentTableBody.appendChild(tr);
+    }
+
+    // Workshop rosters
+    const rosterMap=new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
+    for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
+
+    rosterDoc.innerHTML='';
+    const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
+    roSorted.forEach(w=>{
+      const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+
+      const section=document.createElement('section');
+      section.className='roster-section';
+
+      const header=document.createElement('div');
+      header.className='roster-header';
+      header.innerHTML = `
+        <span class="ws-name">${w.name}</span>
+        &nbsp;–&nbsp;<span class="instructor">${w.instructor}</span>
+        ${w.room?`&nbsp;&nbsp;<span class="room">${w.room}</span>`:''}
+        &nbsp;&nbsp;<span class="count">Assigned students: ${list.length}</span>
       `;
-      studentBody.appendChild(tr);
-    });
-    
-    const rosterDoc = $('rosterDoc');
-    rosterDoc.innerHTML = '';
-    workshops.forEach(w => {
-      const ws = wsMap.get(normalizeForComparison(w.name));
-      const assigned = ws ? ws.assigned : [];
-      const section = document.createElement('div');
-      section.className = 'roster-section';
-      const sorted = [...assigned].sort((a, b) => {
-        if (a.lastName !== b.lastName) return a.lastName.localeCompare(b.lastName);
-        return a.firstName.localeCompare(b.firstName);
+      section.appendChild(header);
+
+      const grid=document.createElement('div');
+      grid.className='name-grid';
+      list.forEach(s=>{
+        const item=document.createElement('div');
+        item.className='name';
+        const fullName = s.first ? `${s.last}, ${s.first}` : s.last;
+        item.textContent = fullName;
+        grid.appendChild(item);
       });
-      section.innerHTML = `
-        <div class="roster-header">
-          <div class="ws-name">${escHTML(w.name)}</div>
-          <div class="instructor">${escHTML(w.instructor)}</div>
-          <div class="room">${escHTML(w.room)}</div>
-          <div class="count">${assigned.length} / ${w.capacity}</div>
-        </div>
-        <div class="name-grid">
-          ${sorted.map(s => `<div class="name">${escHTML(s.lastName)}, ${escHTML(s.firstName)}</div>`).join('')}
-        </div>
-      `;
+      section.appendChild(grid);
       rosterDoc.appendChild(section);
     });
-    
-    const unplacedBody = $('unplacedTable').querySelector('tbody');
-    unplacedBody.innerHTML = '';
-    unplaced.forEach(u => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escHTML(u.student.lastName)}</td>
-        <td>${escHTML(u.student.firstName)}</td>
-        <td>${escHTML(u.student.school)}</td>
-        <td>${escHTML(u.preferences)}</td>
-        <td>${escHTML(u.reason)}</td>
-      `;
-      unplacedBody.appendChild(tr);
-    });
+
+    // Unplaced
+    unplacedTableBody.innerHTML='';
+    const unSorted=unplaced.slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+    for(const u of unSorted){
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${u.last}</td><td>${u.first}</td><td>${u.preferences.join(' | ')}</td><td>${u.reason}</td>`;
+      unplacedTableBody.appendChild(tr);
+    }
   }
 
-  // ============ TAB SWITCHING ============
-  function switchTab(tabId) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.panel > div').forEach(p => p.classList.add('hidden'));
-    $('tab' + tabId).classList.add('active');
-    $('panel' + tabId).classList.remove('hidden');
+  // Exports
+  function toCSVFromTable(tableId) {
+    const t = document.getElementById(tableId);
+    if (!t) return '';
+    const rows = [...t.querySelectorAll('tr')];
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    return rows.map(r => [...r.children].map(c => esc(c.innerText || c.textContent || '')).join(',')).join('\r\n');
   }
-
-  $('tabSummary').onclick = () => switchTab('Summary');
-  $('tabStudents').onclick = () => switchTab('Students');
-  $('tabRosters').onclick = () => switchTab('Rosters');
-  $('tabUnplaced').onclick = () => switchTab('Unplaced');
-
-  // ============ EXPORT FUNCTIONS ============
-  function exportTableToCSV(tableId, filename) {
-    const table = $(tableId);
-    const rows = Array.from(table.querySelectorAll('tr'));
-    const csv = rows.map(row => {
-      const cells = Array.from(row.querySelectorAll('th, td'));
-      return cells.map(cell => {
-        let text = cell.textContent.trim();
-        if (text.includes(',') || text.includes('"') || text.includes('\n')) {
-          text = '"' + text.replace(/"/g, '""') + '"';
-        }
-        return text;
-      }).join(',');
-    }).join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
+  function downloadCSV(csv, name) {
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
+    const a = document.createElement('a'); a.href = url; a.download = name; a.click();
     URL.revokeObjectURL(url);
   }
 
-  function exportToPDF(elementId, filename) {
-    const element = $(elementId);
-    const opt = {
-      margin: 0.5,
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+  if (printStudentsBtn) {
+    printStudentsBtn.onclick = () => {
+      const table = document.getElementById('studentsTable');
+      const html = paginateByHeight({tableEl: table, label: 'Students and choices'});
+      exportToPDF('Students (Choices)', html);
     };
-    html2pdf().set(opt).from(element).save();
+    exportStudentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentsTable'), 'students.csv');
+  }
+  printSummaryBtn.onclick = () => {
+    const table = document.getElementById('balanceTable');
+    const html = paginateByHeight({tableEl: table,label: 'Workshop capacities and assignments',extraTableClass: 'summary-table'});
+    exportToPDF('Summary', html);
+  };
+  exportSummaryCsvBtn.onclick = () => downloadCSV(toCSVFromTable('balanceTable'), 'summary.csv');
+
+  printAssignmentsBtn.onclick = () => {
+    const table = document.getElementById('studentTable');
+    const html = paginateByHeight({tableEl: table, label: 'Assignments'});
+    exportToPDF('Student Assignments', html);
+  };
+  exportAssignmentsCsvBtn.onclick = () => downloadCSV(toCSVFromTable('studentTable'), 'assignments.csv');
+
+  // Rosters PDF/CSV
+  printRostersBtn.onclick = () => {
+    const html = buildRosterHTMLForPDF();
+    exportToPDF('Workshop Rosters', html);
+  };
+  exportRostersCsvBtn.onclick = () => {
+    const csv = buildRosterCSV();
+    downloadCSV(csv, 'rosters.csv');
+  };
+
+  printUnplacedBtn.onclick = () => {
+    const table = document.getElementById('unplacedTable');
+    const html = paginateByHeight({tableEl: table, label: 'Unplaced'});
+    exportToPDF('Unplaced Students', html);
+  };
+  exportUnplacedCsvBtn.onclick = () => downloadCSV(toCSVFromTable('unplacedTable'), 'unplaced.csv');
+
+  function buildRosterHTMLForPDF(){
+    return `
+      <style>
+        .pdf-roster .roster-section{ margin-bottom:10pt; }
+        .pdf-roster .name-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); gap:6pt 24pt; }
+      </style>
+      <div class="pdf-roster">${rosterDoc.innerHTML}</div>
+    `;
   }
 
-  $('printStudents').onclick = () => exportToPDF('studentsPreview', 'students.pdf');
-  $('exportStudentsCsv').onclick = () => exportTableToCSV('studentsTable', 'students.csv');
-  $('printSummary').onclick = () => exportToPDF('panelSummary', 'summary.pdf');
-  $('exportSummaryCsv').onclick = () => exportTableToCSV('balanceTable', 'summary.csv');
-  $('printAssignments').onclick = () => exportToPDF('panelStudents', 'assignments.pdf');
-  $('exportAssignmentsCsv').onclick = () => exportTableToCSV('studentTable', 'assignments.csv');
-  $('printRosters').onclick = () => exportToPDF('panelRosters', 'rosters.pdf');
-  $('exportRostersCsv').onclick = () => {
-    const rows = [['Instructor', 'Workshop', 'Room', 'Student Last', 'Student First']];
-    workshops.forEach(w => {
-      const ws = workshops.find(x => x.name === w.name);
-      const wsData = Array.from(document.querySelectorAll('.roster-section')).find(el => 
-        el.querySelector('.ws-name').textContent === w.name
-      );
-      if (wsData) {
-        const names = Array.from(wsData.querySelectorAll('.name')).map(n => n.textContent.split(', '));
-        names.forEach(([last, first]) => {
-          rows.push([w.instructor, w.name, w.room, last, first || '']);
-        });
+  function buildRosterCSV(){
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const rows = [['Workshop','Instructor','Room','Assigned count','Student']];
+    const rosterMap = new Map(); workshopList.forEach(w=>rosterMap.set(w.name,[]));
+    for(const s of students){const a=assignMap.get(s.id); if(a) rosterMap.get(a).push({last:s.last, first:s.first});}
+    const roSorted=workshopList.slice().sort((a,b)=>a.name.localeCompare(b.name));
+    roSorted.forEach(w=>{
+      const list=(rosterMap.get(w.name)||[]).slice().sort((a,b)=>a.last.localeCompare(b.last)||a.first.localeCompare(b.first));
+      if(list.length===0){
+        rows.push([w.name, w.instructor, w.room||'', '0', '']);
+      }else{
+        list.forEach((s)=> rows.push([w.name, w.instructor, w.room||'', String(list.length), `${s.last}, ${s.first}`]));
       }
     });
-    const csv = rows.map(r => r.map(c => {
-      if (c.includes(',') || c.includes('"')) return '"' + c.replace(/"/g, '""') + '"';
-      return c;
-    }).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'rosters.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-  $('printUnplaced').onclick = () => exportToPDF('panelUnplaced', 'unplaced.pdf');
-  $('exportUnplacedCsv').onclick = () => exportTableToCSV('unplacedTable', 'unplaced.csv');
+    return rows.map(r=>r.map(esc).join(',')).join('\r\n');
+  }
 
-  // ============ RESET ============
-  $('resetAll').onclick = () => {
-    if (!confirm('Reset everything and start over?')) return;
-    workshops = [];
-    students = [];
-    assignments = [];
-    deletedWorkshops = [];
-    workshopsLocked = false;
-    $('lockNote').classList.add('hidden');
-    $('lockWorkshops').disabled = false;
-    $('csvFile').disabled = true;
-    $('studentDrop').classList.add('disabled');
-    $('wkFieldset').disabled = false;
-    $('numWorkshops').disabled = false;
-    $('buildWorkshopRows').disabled = false;
-    $('addWorkshopRow').disabled = false;
-    $('clearWorkshops').disabled = false;
-    $('workshopCsvFile').disabled = false;
-    $('importWorkshopsBtn').disabled = false;
-    $('runBtn').disabled = true;
-    $('studentsPreview').classList.add('hidden');
-    $('resultsCard').classList.add('hidden');
-    renderWorkshops();
-  };
+  function exportToPDF(title, html) {
+    const lib = window.html2pdf;
+    if(!lib){ alert('PDF library did not load. Try again or check your network.'); return; }
+    const host = document.createElement('div');
+    host.style.position='fixed'; host.style.top='0'; host.style.left='0';
+    host.style.zIndex='-1'; host.style.visibility='hidden'; host.style.width='100%';
+    document.body.appendChild(host);
 
-} catch (err) {
-  showInitError(err.message);
+    const pdfStyles = `
+      html, body { margin:0; padding:0; }
+      * { box-sizing: border-box; }
+      h1 { font: 600 16pt Inter, Arial, sans-serif; margin: 0 0 10pt 0; color:#1f2430; }
+      h2 { font: 600 12pt Inter, Arial, sans-serif; margin: 14pt 0 6pt 0; color:#461D7C; }
+      h2 small { font-weight:400; color:#6b7280; }
+      .pdf-page{ break-inside: avoid; }
+      .pdf-page + .pdf-page{ break-before: page; }
+
+      table { width:100%; }
+      table.report {
+        border-collapse: separate; border-spacing: 0; border: 1px solid #d1d5db; border-radius: 10px; background: #fff;
+      }
+      thead { display: table-header-group; }
+      .report thead th { background:#f8fafc; font-weight:600; }
+      .report th, .report td {
+        border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; padding:7pt 8pt; line-height:1.25; vertical-align: top; text-align: left;
+      }
+      .report th:last-child, .report td:last-child { border-right:0 }
+      .report tr:last-child td { border-bottom:0 }
+      .summary-table th:nth-child(3), .summary-table td:nth-child(3),
+      .summary-table th:nth-child(4), .summary-table td:nth-child(4){ text-align:right; font-variant-numeric:tabular-nums; }
+      .summary-table th:nth-child(5), .summary-table td:nth-child(5){ white-space:nowrap; }
+    `;
+
+    const container = document.createElement('div');
+    container.style.width = '7.5in'; container.style.margin = '0'; container.style.padding = '0';
+    container.innerHTML = `<style>${pdfStyles}</style><h1>${title}</h1>${html}`;
+    host.appendChild(container);
+
+    const opt = {
+      margin: [36, 36, 36, 36],
+      filename: `${title.toLowerCase().replace(/\s+/g, '_')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0, scrollX: 0 },
+      jsPDF: { unit: 'pt', format: 'letter', orientation: 'portrait' },
+      pagebreak: { mode: ['css'] }
+    };
+
+    lib().set(opt).from(container).toPdf().get('pdf').then(pdf=>{
+      const url = pdf.output('bloburl'); window.open(url, '_blank');
+    }).finally(()=>host.remove());
+  }
+
+  function paginateByHeight({tableEl, label, extraTableClass='', transformRow, overrideHeadHTML}) {
+    const measHost = document.createElement('div');
+    measHost.style.position='fixed'; measHost.style.left='-10000px'; measHost.style.top='0';
+    measHost.style.width='7.5in'; measHost.style.visibility='hidden';
+    document.body.appendChild(measHost);
+
+    const PAGE_H = 10 * 96;
+    const pages = [];
+    const headHTML = overrideHeadHTML ?? (tableEl.tHead ? tableEl.tHead.innerHTML : '');
+
+    function startMeasurePage() {
+      const wrap = document.createElement('div'); wrap.className='pdf-page';
+      const h2 = document.createElement('h2'); wrap.appendChild(h2);
+      const tbl = document.createElement('table'); tbl.className = `report ${extraTableClass}`;
+      tbl.innerHTML = `<thead>${headHTML}</thead><tbody></tbody>`; wrap.appendChild(tbl);
+      measHost.appendChild(wrap);
+      return {wrap, h2, tbody: tbl.tBodies[0]};
+    }
+
+    let {wrap, h2, tbody} = startMeasurePage();
+    let pageIndex = 0;
+    const rows = tableEl.tBodies[0] ? [...tableEl.tBodies[0].rows] : [];
+    const rowHTMLs = rows.map(r => r.outerHTML);
+    const rowToHTML = (html, rEl) => transformRow ? transformRow(rEl) : html;
+
+    for (let i=0;i<rows.length;i++){
+      const html = rowToHTML(rowHTMLs[i], rows[i], i);
+      const tmp = document.createElement('tbody'); tmp.innerHTML = html;
+      const tr = tmp.firstElementChild; tbody.appendChild(tr);
+      h2.innerHTML = label + (pageIndex>0 ? ' <small>(cont.)</small>' : '');
+      if (wrap.scrollHeight > PAGE_H) {
+        tbody.removeChild(tr); pages.push(wrap.outerHTML); measHost.removeChild(wrap);
+        ({wrap, h2, tbody} = startMeasurePage()); pageIndex++;
+        h2.innerHTML = label + ' <small>(cont.)</small>'; tbody.appendChild(tr);
+      }
+    }
+    pages.push(wrap.outerHTML); measHost.remove(); return pages.join('');
+  }
+
+  function setTab(which) {
+    [tabSummary, tabStudents, tabRosters, tabUnplaced].forEach(t => t.classList.remove('active'));
+    [panelSummary, panelStudents, panelRosters, panelUnplaced].forEach(p => p.classList.add('hidden'));
+    if (which === 'summary') {tabSummary.classList.add('active'); panelSummary.classList.remove('hidden')}
+    if (which === 'students') {tabStudents.classList.add('active'); panelStudents.classList.remove('hidden')}
+    if (which === 'rosters') {tabRosters.classList.add('active'); panelRosters.classList.remove('hidden')}
+    if (which === 'unplaced') {tabUnplaced.classList.add('active'); panelUnplaced.classList.remove('hidden')}
+  }
+  tabSummary.onclick = () => setTab('summary');
+  tabStudents.onclick = () => setTab('students');
+  tabRosters.onclick = () => setTab('rosters');
+  tabUnplaced.onclick = () => setTab('unplaced');
+
+}catch(err){
   console.error(err);
+  showInitError(err && err.message ? err.message : String(err));
 }
 </script>
 </body>
